@@ -1,0 +1,5 @@
+vendor/
+.env
+*.log
+storage/logs/
+bootstrap/cache/*.php
