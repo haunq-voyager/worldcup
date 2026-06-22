@@ -37,4 +37,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Prediction::class);
     }
+
+    public function specialPredictions(): HasMany
+    {
+        return $this->hasMany(SpecialPrediction::class);
+    }
 }

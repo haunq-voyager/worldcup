@@ -68,6 +68,18 @@ export interface Prediction {
 }
 
 
+export interface SpecialPrediction {
+  id: number;
+  user_id: number;
+  type: 'champion' | 'best_player';
+  value: string;
+  stake: number;
+  is_correct: boolean | null;
+  points_earned: number;
+  created_at: string;
+  user?: { id: number; name: string; email: string };
+}
+
 export interface LeaderboardEntry extends User {
   rank: number;
   accuracy: number;

@@ -4,6 +4,7 @@ import type {
   LeaderboardEntry,
   PaginatedResponse,
   Prediction,
+  SpecialPrediction,
   Team,
   User,
   WorldCupMatch,
@@ -54,6 +55,17 @@ export const predictionsApi = {
       .then((r) => r.data),
   myPredictions: () => api.get<Prediction[]>('/predictions/my').then((r) => r.data),
   delete: (id: number) => api.delete(`/predictions/${id}`).then((r) => r.data),
+};
+
+export const specialPredictionsApi = {
+  mine: () => api.get<SpecialPrediction[]>('/special-predictions').then((r) => r.data),
+  all: (type: string) =>
+    api.get<SpecialPrediction[]>('/special-predictions/all', { params: { type } }).then((r) => r.data),
+  save: (type: string, value: string) =>
+    api.post<SpecialPrediction>('/special-predictions', { type, value }).then((r) => r.data),
+  delete: (id: number) => api.delete(`/special-predictions/${id}`),
+  settle: (type: string, correct_value: string) =>
+    api.post('/special-predictions/settle', { type, correct_value }).then((r) => r.data),
 };
 
 export const leaderboardApi = {

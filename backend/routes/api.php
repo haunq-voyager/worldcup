@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\LeaderboardController;
 use App\Http\Controllers\Api\MatchController;
 use App\Http\Controllers\Api\PredictionController;
+use App\Http\Controllers\Api\SpecialPredictionController;
 use App\Http\Controllers\Api\TeamController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,6 +20,9 @@ Route::get('/matches/{match}', [MatchController::class, 'show']);
 
 Route::get('/leaderboard', [LeaderboardController::class, 'index']);
 
+// Special predictions — public list
+Route::get('/special-predictions/all', [SpecialPredictionController::class, 'all']);
+
 // Authenticated routes
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout',  [AuthController::class, 'logout']);
@@ -29,6 +33,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/predictions',                [PredictionController::class, 'store']);
     Route::get('/predictions/my',              [PredictionController::class, 'myPredictions']);
     Route::delete('/predictions/{prediction}', [PredictionController::class, 'destroy']);
+
+    // Special predictions (champion / best player)
+    Route::get('/special-predictions',                              [SpecialPredictionController::class, 'index']);
+    Route::post('/special-predictions',                             [SpecialPredictionController::class, 'store']);
+    Route::delete('/special-predictions/{specialPrediction}',       [SpecialPredictionController::class, 'destroy']);
+    Route::post('/special-predictions/settle',                      [SpecialPredictionController::class, 'settle']);
 
     // Admin
     Route::post('/matches/{match}/result',     [MatchController::class, 'updateResult']);

@@ -91,6 +91,7 @@ export default function Navbar() {
     { href: '/', label: 'Lịch thi đấu' },
     { href: '/teams', label: 'Đội tuyển' },
     { href: '/leaderboard', label: '🏆 Bảng xếp hạng' },
+    { href: '/special', label: '🌟 Đặc biệt' },
     ...(user ? [{ href: '/predictions', label: 'Dự đoán của tôi' }] : []),
   ];
 
