@@ -104,7 +104,7 @@ export default function Navbar() {
         />
       )}
 
-      <nav className="navbar-animated shadow-xl relative overflow-hidden">
+      <nav className="navbar-animated shadow-xl relative z-40 overflow-visible">
         {/* Subtle pitch-line decoration */}
         <div className="absolute inset-0 opacity-[0.04] pointer-events-none"
           style={{ backgroundImage: 'repeating-linear-gradient(90deg, white 0, white 1px, transparent 0, transparent 80px)' }}

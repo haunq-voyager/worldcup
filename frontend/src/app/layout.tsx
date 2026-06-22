@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
 import LeaderboardPanel from '@/components/LeaderboardPanel';
+import RulesPanel from '@/components/RulesPanel';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {children}
           </main>
           <LeaderboardPanel />
+          <RulesPanel />
         </div>
         <footer className="bg-blue-900 text-blue-200 text-center py-6 mt-12 text-sm">
           <p>World Cup 2026 Predictor &copy; {new Date().getFullYear()}</p>
