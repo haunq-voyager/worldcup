@@ -67,6 +67,32 @@ export interface Prediction {
   match?: WorldCupMatch;
 }
 
+export interface MatchPredictionViewer {
+  id: number;
+  user: Pick<User, 'id' | 'name'>;
+  predicted_home_score: number;
+  predicted_away_score: number;
+  is_correct: boolean | null;
+  points_earned: number;
+  created_at: string;
+}
+
+export interface MatchPredictionsResponse {
+  data: MatchPredictionViewer[];
+  meta: {
+    current_page: number;
+    last_page: number;
+    per_page: number;
+    total: number;
+  };
+  summary: {
+    total: number;
+    correct: number;
+    wrong: number;
+    pending: number;
+  };
+}
+
 
 export interface SpecialPrediction {
   id: number;

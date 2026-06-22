@@ -116,3 +116,30 @@ worldcup/
 - Dự đoán kết quả trận đấu
 - Dự đoán nhà vô địch giải đấu
 - Bảng xếp hạng điểm số
+- Xem dự đoán tỉ số của mọi người theo từng trận và kết quả đúng/sai sau khi trận đấu kết thúc
+
+## API dự đoán theo trận
+
+`GET /api/matches/{match}/predictions?page=1&per_page=50` là API công khai, trả về tên người dự đoán, tỉ số đã chọn, trạng thái đúng/sai và điểm nhận được. Email người dùng không được trả về. `per_page` nhận giá trị từ 1 đến 100.
+
+Phản hồi thành công (`200 OK`):
+
+```json
+{
+  "data": [
+    {
+      "id": 15,
+      "user": { "id": 8, "name": "Hậu Ngô" },
+      "predicted_home_score": 2,
+      "predicted_away_score": 1,
+      "is_correct": true,
+      "points_earned": 20,
+      "created_at": "2026-06-22T07:00:00.000000Z"
+    }
+  ],
+  "meta": { "current_page": 1, "last_page": 1, "per_page": 50, "total": 1 },
+  "summary": { "total": 1, "correct": 1, "wrong": 0, "pending": 0 }
+}
+```
+
+Nếu `page` hoặc `per_page` không hợp lệ, API trả `422`; nếu trận đấu không tồn tại, API trả `404`.

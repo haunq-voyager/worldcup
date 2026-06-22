@@ -8,6 +8,15 @@ import clsx from 'clsx';
 
 type BallPhase = 'idle' | 'shoot' | 'goal' | 'return';
 
+type NavEffect = 'leaderboard' | 'special';
+
+type NavLink = {
+  href: string;
+  label: string;
+  icon?: string;
+  effect?: NavEffect;
+};
+
 const SPARKS = [
   { x: '18px',  y: '-22px' },
   { x: '-16px', y: '-20px' },
@@ -87,11 +96,11 @@ export default function Navbar() {
     }
   };
 
-  const links = [
+  const links: NavLink[] = [
     { href: '/', label: 'Lịch thi đấu' },
     { href: '/teams', label: 'Đội tuyển' },
-    { href: '/leaderboard', label: '🏆 Bảng xếp hạng' },
-    { href: '/special', label: '🌟 Đặc biệt' },
+    { href: '/leaderboard', label: 'Bảng xếp hạng', icon: '🏆', effect: 'leaderboard' },
+    { href: '/special', label: 'Đặc biệt', icon: '🌟', effect: 'special' },
     ...(user ? [{ href: '/predictions', label: 'Dự đoán của tôi' }] : []),
   ];
 
@@ -168,6 +177,7 @@ export default function Navbar() {
                   href={link.href}
                   className={clsx(
                     'relative px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 group overflow-hidden',
+                    link.effect && `nav-feature-link nav-feature-${link.effect}`,
                     pathname === link.href
                       ? 'text-white'
                       : 'text-blue-200 hover:text-white'
@@ -184,7 +194,18 @@ export default function Navbar() {
                     'absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-yellow-400 rounded-full transition-all duration-300',
                     pathname === link.href ? 'w-4/5 opacity-100' : 'w-0 opacity-0 group-hover:w-2/3 group-hover:opacity-60'
                   )} />
-                  <span className="relative">{link.label}</span>
+                  {link.effect && <span className="nav-feature-shine" aria-hidden="true" />}
+                  <span className="relative flex items-center gap-1.5">
+                    {link.icon && (
+                      <span
+                        className={clsx('nav-feature-icon', `nav-feature-icon--${link.effect}`)}
+                        aria-hidden="true"
+                      >
+                        {link.icon}
+                      </span>
+                    )}
+                    <span>{link.label}</span>
+                  </span>
                 </Link>
               ))}
             </div>
@@ -275,7 +296,10 @@ export default function Navbar() {
                     pathname === link.href ? 'bg-white/20 text-white' : 'text-blue-100 hover:bg-white/10 hover:text-white'
                   )}
                 >
-                  {link.label}
+                  <span className="flex items-center gap-2">
+                    {link.icon && <span aria-hidden="true">{link.icon}</span>}
+                    <span>{link.label}</span>
+                  </span>
                 </Link>
               ))}
               <div className="pt-2 border-t border-white/10 space-y-1">

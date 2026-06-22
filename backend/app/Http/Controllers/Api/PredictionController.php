@@ -11,6 +11,66 @@ use Illuminate\Http\Request;
 
 class PredictionController extends Controller
 {
+    public function forMatch(Request $request, WorldCupMatch $match): JsonResponse
+    {
+        $validated = $request->validate([
+            'page'     => 'sometimes|integer|min:1',
+            'per_page' => 'sometimes|integer|min:1|max:100',
+        ]);
+
+        $predictions = $match->predictions()
+            ->select([
+                'id',
+                'user_id',
+                'match_id',
+                'predicted_home_score',
+                'predicted_away_score',
+                'is_correct',
+                'points_earned',
+                'created_at',
+            ])
+            ->with('user:id,name')
+            ->orderBy('created_at')
+            ->paginate(
+                perPage: $validated['per_page'] ?? 50,
+                page: $validated['page'] ?? 1,
+            );
+
+        $summary = $match->predictions()
+            ->selectRaw('COUNT(*) AS total')
+            ->selectRaw('SUM(CASE WHEN is_correct = true THEN 1 ELSE 0 END) AS correct')
+            ->selectRaw('SUM(CASE WHEN is_correct = false THEN 1 ELSE 0 END) AS wrong')
+            ->selectRaw('SUM(CASE WHEN is_correct IS NULL THEN 1 ELSE 0 END) AS pending')
+            ->first();
+
+        return response()->json([
+            'data' => $predictions->getCollection()->map(fn (Prediction $prediction) => [
+                'id'                       => $prediction->id,
+                'user'                     => [
+                    'id'   => $prediction->user->id,
+                    'name' => $prediction->user->name,
+                ],
+                'predicted_home_score'     => $prediction->predicted_home_score,
+                'predicted_away_score'     => $prediction->predicted_away_score,
+                'is_correct'               => $prediction->is_correct,
+                'points_earned'            => $prediction->points_earned,
+                'created_at'               => $prediction->created_at,
+            ])->values(),
+            'meta' => [
+                'current_page' => $predictions->currentPage(),
+                'last_page'    => $predictions->lastPage(),
+                'per_page'     => $predictions->perPage(),
+                'total'        => $predictions->total(),
+            ],
+            'summary' => [
+                'total'   => (int) $summary->total,
+                'correct' => (int) $summary->correct,
+                'wrong'   => (int) $summary->wrong,
+                'pending' => (int) $summary->pending,
+            ],
+        ]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([

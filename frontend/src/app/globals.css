@@ -136,6 +136,22 @@
   20%, 80% { opacity: 1; }
 }
 
+@keyframes trophy-float {
+  0%, 100% { transform: translateY(0) rotate(-4deg); filter: drop-shadow(0 0 2px rgba(253, 224, 71, 0.25)); }
+  50% { transform: translateY(-2px) rotate(4deg); filter: drop-shadow(0 0 7px rgba(253, 224, 71, 0.8)); }
+}
+
+@keyframes star-twinkle {
+  0%, 100% { transform: scale(0.92) rotate(-5deg); filter: brightness(0.9) drop-shadow(0 0 2px rgba(250, 204, 21, 0.3)); }
+  50% { transform: scale(1.2) rotate(7deg); filter: brightness(1.25) drop-shadow(0 0 8px rgba(250, 204, 21, 0.95)); }
+}
+
+@keyframes nav-feature-shine {
+  0% { transform: translateX(-180%) skewX(-22deg); opacity: 0; }
+  20% { opacity: 0.6; }
+  100% { transform: translateX(650%) skewX(-22deg); opacity: 0; }
+}
+
 /* ── Utility classes ── */
 
 .animate-ball-spin   { animation: ball-spin 3.5s linear infinite; display: inline-block; }
@@ -153,6 +169,46 @@
 
 .navbar-flash-overlay {
   animation: flash-gold 0.8s ease forwards;
+}
+
+.nav-feature-leaderboard { color: #fde68a; }
+.nav-feature-special { color: #f5d0fe; }
+
+.nav-feature-icon {
+  display: inline-block;
+  transform-origin: 50% 75%;
+}
+
+.nav-feature-icon--leaderboard { animation: trophy-float 2.6s ease-in-out infinite; }
+.nav-feature-icon--special { animation: star-twinkle 1.8s ease-in-out infinite; }
+
+.nav-feature-shine {
+  position: absolute;
+  inset: 0 auto 0 -20%;
+  width: 18%;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  opacity: 0;
+}
+
+.nav-feature-link:hover .nav-feature-shine {
+  animation: nav-feature-shine 0.85s ease-out;
+}
+
+.nav-feature-link:hover .nav-feature-icon--leaderboard {
+  animation-duration: 0.65s;
+}
+
+.nav-feature-link:hover .nav-feature-icon--special {
+  animation-duration: 0.7s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-feature-icon--leaderboard,
+  .nav-feature-icon--special,
+  .nav-feature-link:hover .nav-feature-shine {
+    animation: none;
+  }
 }
 
 /* ========== UTILITY CLASSES ========== */

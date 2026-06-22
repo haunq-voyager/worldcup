@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { vnTime, vnDateShort } from '@/lib/datetime';
 import type { WorldCupMatch } from '@/types';
 import { matchesApi } from '@/lib/api';
+import MatchPredictionsModal from '@/components/MatchPredictionsModal';
 import clsx from 'clsx';
 
 interface MatchCardProps {
@@ -40,6 +41,7 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
   const [awayPred, setAwayPred] = useState(userPrediction ? String(userPrediction.predicted_away_score) : '');
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [predictionsOpen, setPredictionsOpen] = useState(false);
 
   const [adminOpen, setAdminOpen] = useState(false);
   const [homeInput, setHomeInput] = useState(match.home_score?.toString() ?? '');
@@ -325,6 +327,14 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
         ) : (
           <p className="text-xs text-gray-300 text-center">Đã đóng dự đoán</p>
         )}
+
+        <button
+          onClick={() => setPredictionsOpen(true)}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-blue-100 bg-blue-50/70 py-2 text-xs font-bold text-blue-700 transition-all hover:border-blue-200 hover:bg-blue-100 hover:shadow-sm"
+        >
+          <span>{match.status === 'finished' ? '🏁' : '👥'}</span>
+          {match.status === 'finished' ? 'Kết quả dự đoán' : 'Xem dự đoán của mọi người'}
+        </button>
       </div>
 
       {/* Admin result editor */}
@@ -369,6 +379,12 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
           )}
         </div>
       )}
+
+      <MatchPredictionsModal
+        match={match}
+        open={predictionsOpen}
+        onClose={() => setPredictionsOpen(false)}
+      />
     </div>
   );
 }

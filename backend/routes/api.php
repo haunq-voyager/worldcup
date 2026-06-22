@@ -17,6 +17,7 @@ Route::get('/teams/{team}', [TeamController::class, 'show']);
 
 Route::get('/matches',        [MatchController::class, 'index']);
 Route::get('/matches/{match}', [MatchController::class, 'show']);
+Route::get('/matches/{match}/predictions', [PredictionController::class, 'forMatch']);
 
 Route::get('/leaderboard', [LeaderboardController::class, 'index']);
 

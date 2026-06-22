@@ -2,6 +2,7 @@ import axios from 'axios';
 import type {
   AuthResponse,
   LeaderboardEntry,
+  MatchPredictionsResponse,
   PaginatedResponse,
   Prediction,
   SpecialPrediction,
@@ -54,6 +55,12 @@ export const predictionsApi = {
       .post<Prediction>('/predictions', { match_id, predicted_home_score, predicted_away_score })
       .then((r) => r.data),
   myPredictions: () => api.get<Prediction[]>('/predictions/my').then((r) => r.data),
+  forMatch: (matchId: number, page = 1, perPage = 50) =>
+    api
+      .get<MatchPredictionsResponse>(`/matches/${matchId}/predictions`, {
+        params: { page, per_page: perPage },
+      })
+      .then((r) => r.data),
   delete: (id: number) => api.delete(`/predictions/${id}`).then((r) => r.data),
 };
 
