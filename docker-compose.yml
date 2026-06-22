@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: secret
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -28,8 +28,8 @@ services:
     environment:
       APP_ENV: local
       APP_DEBUG: "true"
-      APP_URL: http://localhost:8000
-      FRONTEND_URL: http://localhost:3000
+      APP_URL: http://192.168.1.79:8000
+      FRONTEND_URL: http://192.168.1.79:3000
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
@@ -39,7 +39,7 @@ services:
       CACHE_DRIVER: file
       SESSION_DRIVER: file
       QUEUE_CONNECTION: sync
-      SANCTUM_STATEFUL_DOMAINS: "localhost:3000"
+      SANCTUM_STATEFUL_DOMAINS: "192.168.1.79:3000"
     ports:
       - "8000:8000"
     depends_on:
@@ -51,9 +51,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://192.168.1.79:8000/api
     container_name: worldcup_frontend
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      NEXT_PUBLIC_API_URL: http://192.168.1.79:8000/api
     ports:
       - "3000:3000"
     depends_on:

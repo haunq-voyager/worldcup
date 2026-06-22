@@ -8,7 +8,7 @@ import clsx from 'clsx';
 
 const RANK_ICONS: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
-export default function LeaderboardSidebar() {
+export default function LeaderboardSidebar({ onClose }: { onClose?: () => void }) {
   const { user } = useAuth();
   const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
   const [myRank, setMyRank] = useState<number | null>(null);
@@ -39,11 +39,23 @@ export default function LeaderboardSidebar() {
         <h2 className="text-sm font-black text-gray-800 flex items-center gap-1.5">
           🏆 Bảng xếp hạng
         </h2>
-        {user && myRank && (
-          <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-semibold">
-            #{myRank}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {user && myRank && (
+            <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-semibold">
+              #{myRank}
+            </span>
+          )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              title="Đóng bảng xếp hạng"
+              aria-label="Đóng bảng xếp hạng"
+              className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-100 text-gray-500 hover:bg-red-100 hover:text-red-600 transition-colors text-xs font-bold leading-none"
+            >
+              ✕
+            </button>
+          )}
+        </div>
       </div>
 
       {/* My rank highlight */}

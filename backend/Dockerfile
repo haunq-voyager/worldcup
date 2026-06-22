@@ -37,4 +37,6 @@ RUN sed -i 's/^DB_HOST=.*/DB_HOST=postgres/' .env \
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8000"]
+# Sync runtime env (from docker-compose) into .env so `artisan serve` forwards
+# them to its child server process, then boot.
+CMD ["sh", "-c", "sed -i \"s|^APP_URL=.*|APP_URL=${APP_URL}|; s|^FRONTEND_URL=.*|FRONTEND_URL=${FRONTEND_URL}|; s|^SANCTUM_STATEFUL_DOMAINS=.*|SANCTUM_STATEFUL_DOMAINS=${SANCTUM_STATEFUL_DOMAINS}|\" .env && php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=8000"]
