@@ -5,25 +5,21 @@ import { useRouter } from 'next/navigation';
 import { predictionsApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import Image from 'next/image';
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
-import type { Prediction, PredictionValue } from '@/types';
+import { vnDateTime } from '@/lib/datetime';
+import type { Prediction } from '@/types';
 import clsx from 'clsx';
-
-const PREDICTION_LABELS: Record<PredictionValue, string> = {
-  home_win: 'Chủ nhà thắng',
-  draw: 'Hòa',
-  away_win: 'Khách thắng',
-};
 
 const ROUND_LABELS: Record<string, string> = {
   group: 'Vòng bảng',
+  round_of_32: 'Vòng 32 đội',
   round_of_16: 'Vòng 1/8',
   quarter_final: 'Tứ kết',
   semi_final: 'Bán kết',
   third_place: 'Tranh hạng 3',
   final: 'Chung kết',
 };
+
+const ROUND_ORDER = ['group', 'round_of_32', 'round_of_16', 'quarter_final', 'semi_final', 'third_place', 'final'];
 
 export default function PredictionsPage() {
   const { user, loading: authLoading } = useAuth();
@@ -59,6 +55,18 @@ export default function PredictionsPage() {
     points: predictions.reduce((sum, p) => sum + p.points_earned, 0),
   };
 
+  // vcoins per round (only rounds the user has played)
+  const roundTotals = ROUND_ORDER
+    .map((r) => ({
+      round: r,
+      label: ROUND_LABELS[r] || r,
+      points: predictions
+        .filter((p) => p.match?.round === r)
+        .reduce((sum, p) => sum + p.points_earned, 0),
+      count: predictions.filter((p) => p.match?.round === r).length,
+    }))
+    .filter((x) => x.count > 0);
+
   if (authLoading || !user) return null;
 
   return (
@@ -72,7 +80,7 @@ export default function PredictionsPage() {
           { label: 'Tổng dự đoán', value: stats.total, color: 'bg-blue-50 text-blue-800' },
           { label: 'Đúng', value: stats.correct, color: 'bg-green-50 text-green-800' },
           { label: 'Sai', value: stats.wrong, color: 'bg-red-50 text-red-800' },
-          { label: 'Vcoins kiếm được', value: `+${stats.points}`, color: 'bg-yellow-50 text-yellow-800' },
+          { label: 'Vcoins lời/lỗ', value: `${stats.points >= 0 ? '+' : ''}${stats.points}`, color: 'bg-yellow-50 text-yellow-800' },
         ].map((s) => (
           <div key={s.label} className={`rounded-xl p-4 ${s.color}`}>
             <p className="text-sm opacity-70">{s.label}</p>
@@ -80,6 +88,26 @@ export default function PredictionsPage() {
           </div>
         ))}
       </div>
+
+      {/* Vcoins per round */}
+      {roundTotals.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 mb-6">
+          <h2 className="text-sm font-bold text-gray-700 mb-3">Vcoins theo vòng đấu</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {roundTotals.map((r) => (
+              <div key={r.round} className="rounded-xl border border-gray-100 px-3 py-2 bg-gray-50">
+                <p className="text-xs text-gray-500 truncate">{r.label}</p>
+                <p className={clsx(
+                  'text-lg font-black tabular-nums',
+                  r.points > 0 ? 'text-green-600' : r.points < 0 ? 'text-red-500' : 'text-gray-700'
+                )}>
+                  {r.points > 0 ? '+' : ''}{r.points}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filter tabs */}
       <div className="flex gap-2 mb-6 border-b border-gray-200">
@@ -117,7 +145,6 @@ export default function PredictionsPage() {
           {filtered.map((prediction) => {
             const match = prediction.match;
             if (!match) return null;
-            const matchDate = new Date(match.match_date);
 
             return (
               <div key={prediction.id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
@@ -134,7 +161,7 @@ export default function PredictionsPage() {
                       <p className="text-xs text-gray-400">
                         {ROUND_LABELS[match.round] || match.round}
                         {match.group_name ? ` · Bảng ${match.group_name}` : ''} ·{' '}
-                        {format(matchDate, 'dd/MM/yyyy HH:mm', { locale: vi })}
+                        {vnDateTime(match.match_date)}
                       </p>
                     </div>
                     {match.away_team?.flag_url && (
@@ -152,9 +179,10 @@ export default function PredictionsPage() {
 
                   {/* Prediction badge */}
                   <div className="flex-shrink-0 text-right">
+                    <p className="text-[10px] text-gray-400">Bạn đoán</p>
                     <span
                       className={clsx(
-                        'inline-block text-xs font-semibold px-3 py-1.5 rounded-full',
+                        'inline-block text-sm font-black px-3 py-1 rounded-lg tabular-nums',
                         prediction.is_correct === true
                           ? 'bg-green-100 text-green-700'
                           : prediction.is_correct === false
@@ -162,13 +190,15 @@ export default function PredictionsPage() {
                           : 'bg-blue-100 text-blue-700'
                       )}
                     >
-                      {PREDICTION_LABELS[prediction.prediction]}
+                      {prediction.predicted_home_score} - {prediction.predicted_away_score}
                     </span>
                     {prediction.is_correct === true && (
                       <p className="text-xs text-green-600 font-bold mt-1">+{prediction.points_earned} vcoins</p>
                     )}
                     {prediction.is_correct === false && (
-                      <p className="text-xs text-red-400 mt-1">0 vcoins</p>
+                      <p className="text-xs text-red-400 mt-1">
+                        {prediction.points_earned < 0 ? `${prediction.points_earned} vcoins` : 'Hoàn cược'}
+                      </p>
                     )}
                     {prediction.is_correct === null && (
                       <p className="text-xs text-gray-400 mt-1">Chờ kết quả</p>

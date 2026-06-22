@@ -4,10 +4,7 @@ import type {
   LeaderboardEntry,
   PaginatedResponse,
   Prediction,
-  PredictionValue,
   Team,
-  TournamentPredictions,
-  TournamentStage,
   User,
   WorldCupMatch,
 } from '@/types';
@@ -51,28 +48,22 @@ export const matchesApi = {
 };
 
 export const predictionsApi = {
-  create: (match_id: number, prediction: PredictionValue) =>
-    api.post<Prediction>('/predictions', { match_id, prediction }).then((r) => r.data),
+  create: (match_id: number, predicted_home_score: number, predicted_away_score: number) =>
+    api
+      .post<Prediction>('/predictions', { match_id, predicted_home_score, predicted_away_score })
+      .then((r) => r.data),
   myPredictions: () => api.get<Prediction[]>('/predictions/my').then((r) => r.data),
   delete: (id: number) => api.delete(`/predictions/${id}`).then((r) => r.data),
 };
 
 export const leaderboardApi = {
-  get: (page = 1, per_page = 20) =>
+  get: (page = 1, per_page = 20, round?: string) =>
     api
       .get<{ data: PaginatedResponse<LeaderboardEntry>; current_user_rank: number | null }>(
         '/leaderboard',
-        { params: { page, per_page } }
+        { params: { page, per_page, round: round || undefined } }
       )
       .then((r) => r.data),
-};
-
-export const tournamentApi = {
-  my: () => api.get<TournamentPredictions>('/tournament-predictions/my').then((r) => r.data),
-  save: (stage: TournamentStage, team_ids: number[]) =>
-    api.post('/tournament-predictions', { stage, team_ids }).then((r) => r.data),
-  settle: (stage: TournamentStage, team_ids: number[]) =>
-    api.post('/tournament-predictions/settle', { stage, team_ids }).then((r) => r.data),
 };
 
 export default api;

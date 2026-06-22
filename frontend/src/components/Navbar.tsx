@@ -90,7 +90,7 @@ export default function Navbar() {
   const links = [
     { href: '/', label: 'Lịch thi đấu' },
     { href: '/teams', label: 'Đội tuyển' },
-    { href: '/tournament', label: '🏆 Toàn giải' },
+    { href: '/leaderboard', label: '🏆 Bảng xếp hạng' },
     ...(user ? [{ href: '/predictions', label: 'Dự đoán của tôi' }] : []),
   ];
 

@@ -21,12 +21,14 @@ class WorldCupMatch extends Model
         'home_score',
         'away_score',
         'result',
+        'settled',
         'odds',
         'odds_updated_at',
     ];
 
     protected $casts = [
         'match_date'      => 'datetime',
+        'settled'         => 'boolean',
         'odds'            => 'array',
         'odds_updated_at' => 'datetime',
     ];

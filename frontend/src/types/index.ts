@@ -22,7 +22,6 @@ export interface Team {
 
 export type MatchStatus = 'scheduled' | 'live' | 'finished';
 export type MatchResult = 'home_win' | 'draw' | 'away_win';
-export type PredictionValue = 'home_win' | 'draw' | 'away_win';
 
 export interface MatchOdds {
   h2h?: { home: number | null; draw: number | null; away: number | null; book: string };
@@ -59,12 +58,15 @@ export interface Prediction {
   id: number;
   user_id: number;
   match_id: number;
-  prediction: PredictionValue;
+  predicted_home_score: number;
+  predicted_away_score: number;
+  stake: number;
   is_correct: boolean | null;
   points_earned: number;
   created_at: string;
   match?: WorldCupMatch;
 }
+
 
 export interface LeaderboardEntry extends User {
   rank: number;
@@ -82,29 +84,4 @@ export interface PaginatedResponse<T> {
   last_page: number;
   per_page: number;
   total: number;
-}
-
-// Tournament predictions
-export type TournamentStage = 'quarter_final' | 'semi_final' | 'runner_up' | 'champion';
-
-export interface TournamentPick {
-  id: number;
-  team_id: number;
-  team: Team;
-  is_correct: boolean | null;
-}
-
-export interface StageInfo {
-  limit: number;
-  points: number;
-  label: string;
-  locked: boolean;
-}
-
-export interface TournamentPredictions {
-  quarter_final: TournamentPick[];
-  semi_final: TournamentPick[];
-  runner_up: TournamentPick[];
-  champion: TournamentPick[];
-  stages_info: Record<TournamentStage, StageInfo>;
 }

@@ -1,41 +1,30 @@
 'use client';
 
 import { useState } from 'react';
-import { format } from 'date-fns';
-import { vi } from 'date-fns/locale';
-import type { WorldCupMatch, PredictionValue } from '@/types';
+import { vnTime, vnDateShort } from '@/lib/datetime';
+import type { WorldCupMatch } from '@/types';
 import { matchesApi } from '@/lib/api';
 import clsx from 'clsx';
 
 interface MatchCardProps {
   match: WorldCupMatch;
-  onPredict?: (matchId: number, value: PredictionValue) => Promise<void>;
+  onPredict?: (matchId: number, homeScore: number, awayScore: number) => Promise<void>;
   onCancelPredict?: (predictionId: number, matchId: number) => Promise<void>;
   isAuthenticated?: boolean;
   isAdmin?: boolean;
   onResultUpdated?: (match: WorldCupMatch) => void;
 }
 
+const STAKE = 10;
+
 const ROUND_LABELS: Record<string, string> = {
   group: 'Vòng bảng',
-  round_of_32: '1/16',
-  round_of_16: '1/8',
+  round_of_32: 'Vòng 32 đội',
+  round_of_16: 'Vòng 1/8',
   quarter_final: 'Tứ kết',
   semi_final: 'Bán kết',
-  third_place: 'H.3',
+  third_place: 'Tranh hạng 3',
   final: 'Chung kết',
-};
-
-const PREDICTION_LABELS: Record<PredictionValue, string> = {
-  home_win: '🏠 Chủ nhà',
-  draw: '🤝 Hòa',
-  away_win: '✈️ Khách',
-};
-
-const PREDICTION_SHORT: Record<PredictionValue, string> = {
-  home_win: 'Chủ nhà',
-  draw: 'Hòa',
-  away_win: 'Khách',
 };
 
 const fmtOdd = (n: number | null | undefined): string =>
@@ -45,8 +34,13 @@ const fmtPoint = (p: number | null | undefined): string =>
   p === null || p === undefined ? '' : p > 0 ? `+${p}` : `${p}`;
 
 export default function MatchCard({ match, onPredict, onCancelPredict, isAuthenticated, isAdmin, onResultUpdated }: MatchCardProps) {
-  const [pendingValue, setPendingValue] = useState<PredictionValue | null>(null);
+  const userPrediction = match.user_prediction ?? null;
+
+  const [homePred, setHomePred] = useState(userPrediction ? String(userPrediction.predicted_home_score) : '');
+  const [awayPred, setAwayPred] = useState(userPrediction ? String(userPrediction.predicted_away_score) : '');
+  const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const [adminOpen, setAdminOpen] = useState(false);
   const [homeInput, setHomeInput] = useState(match.home_score?.toString() ?? '');
   const [awayInput, setAwayInput] = useState(match.away_score?.toString() ?? '');
@@ -77,30 +71,28 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
   const matchDate = new Date(match.match_date);
   const isPast = matchDate < new Date();
   const canPredict = match.status === 'scheduled' && !isPast && isAuthenticated;
-  const userPrediction = match.user_prediction?.prediction as PredictionValue | undefined;
-  const predictionId = match.user_prediction?.id;
-
-  const handleSelectOption = (value: PredictionValue) => {
-    if (loading) return;
-    setPendingValue((prev) => (prev === value ? null : value));
-  };
 
   const handleConfirm = async () => {
-    if (!pendingValue || !onPredict) return;
+    if (!onPredict) return;
+    const h = parseInt(homePred, 10);
+    const a = parseInt(awayPred, 10);
+    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
     setLoading(true);
     try {
-      await onPredict(match.id, pendingValue);
-      setPendingValue(null);
+      await onPredict(match.id, h, a);
+      setEditing(false);
     } finally {
       setLoading(false);
     }
   };
 
   const handleCancelPredict = async () => {
-    if (!onCancelPredict || !predictionId) return;
+    if (!onCancelPredict || !userPrediction) return;
     setLoading(true);
     try {
-      await onCancelPredict(predictionId, match.id);
+      await onCancelPredict(userPrediction.id, match.id);
+      setHomePred('');
+      setAwayPred('');
     } finally {
       setLoading(false);
     }
@@ -112,6 +104,24 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
     finished:  { label: 'Kết thúc',    cls: 'bg-gray-500/10 text-gray-400 border-gray-500/20' },
   };
   const sc = statusConfig[match.status];
+
+  const scoreInputs = (
+    <div className="flex items-center justify-center gap-2">
+      <input
+        type="number" min="0" max="99" inputMode="numeric"
+        value={homePred} onChange={(e) => setHomePred(e.target.value)}
+        placeholder="0"
+        className="w-12 border-2 border-gray-200 rounded-lg px-1 py-1.5 text-center text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <span className="text-gray-400 font-bold">-</span>
+      <input
+        type="number" min="0" max="99" inputMode="numeric"
+        value={awayPred} onChange={(e) => setAwayPred(e.target.value)}
+        placeholder="0"
+        className="w-12 border-2 border-gray-200 rounded-lg px-1 py-1.5 text-center text-sm font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+  );
 
   return (
     <div className="card-hover bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm flex flex-col animate-fade-in">
@@ -129,7 +139,6 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
 
       {/* Match body */}
       <div className="flex items-center px-3 py-4 gap-2">
-
         {/* Home team */}
         <div className="flex-1 flex flex-col items-center gap-1.5 min-w-0">
           <div className="w-14 h-10 rounded-lg overflow-hidden shadow-md ring-2 ring-gray-100 flex-shrink-0 bg-gray-50">
@@ -161,10 +170,10 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
             <>
               <span className="text-base font-black text-gray-300">VS</span>
               <span className="text-xs text-gray-400 font-medium mt-0.5 text-center leading-tight">
-                {format(matchDate, 'dd/MM', { locale: vi })}
+                {vnDateShort(match.match_date)}
               </span>
               <span className="text-xs font-bold text-blue-600">
-                {format(matchDate, 'HH:mm', { locale: vi })}
+                {vnTime(match.match_date)}
               </span>
             </>
           )}
@@ -192,7 +201,6 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
             📊 Tỷ lệ tham khảo
           </p>
 
-          {/* 1x2 */}
           {match.odds.h2h && (
             <div className="grid grid-cols-3 gap-1 mb-1">
               {([
@@ -209,7 +217,6 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
           )}
 
           <div className="grid grid-cols-2 gap-1">
-            {/* Handicap (chấp) */}
             {match.odds.spreads && (
               <div className="bg-white rounded-md border border-gray-100 px-1.5 py-1">
                 <p className="text-[9px] text-gray-400 font-bold leading-none mb-1">Kèo chấp</p>
@@ -228,7 +235,6 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
               </div>
             )}
 
-            {/* Over/Under (tài/xỉu) */}
             {match.odds.totals && (
               <div className="bg-white rounded-md border border-gray-100 px-1.5 py-1">
                 <p className="text-[9px] text-gray-400 font-bold leading-none mb-1">Tài/Xỉu {match.odds.totals.point}</p>
@@ -249,82 +255,67 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
       {/* Prediction section */}
       <div className="border-t border-gray-100 px-3 py-3 mt-auto">
 
-        {/* Confirming state */}
-        {pendingValue && canPredict ? (
-          <div className="space-y-2 animate-scale-in">
-            <p className="text-xs text-center text-gray-500">
-              Bạn chọn: <span className="font-bold text-blue-700">{PREDICTION_SHORT[pendingValue]}</span>
-            </p>
+        {canPredict && (!userPrediction || editing) ? (
+          /* Enter / edit score prediction */
+          <div className="space-y-2">
+            <p className="text-xs text-gray-400 text-center">Đoán tỉ số chính xác</p>
+            {scoreInputs}
             <div className="flex gap-2">
-              <button onClick={handleConfirm} disabled={loading}
+              <button onClick={handleConfirm} disabled={loading || homePred === '' || awayPred === ''}
                 className="flex-1 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 text-white text-xs font-bold shadow-md transition-all">
-                {loading ? '⏳ Đang lưu...' : '✓ Xác nhận'}
+                {loading ? '⏳...' : `Cược ${STAKE} vcoins`}
               </button>
-              <button onClick={() => setPendingValue(null)} disabled={loading}
-                className="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-500 hover:border-gray-300 hover:bg-gray-50 text-xs font-semibold transition-all">
-                Chọn lại
-              </button>
-            </div>
-          </div>
-
-        /* Can predict, no existing prediction */
-        ) : canPredict && !userPrediction ? (
-          <div>
-            <p className="text-xs text-gray-400 text-center mb-2">Chọn kết quả</p>
-            <div className="grid grid-cols-3 gap-1.5">
-              {(['home_win', 'draw', 'away_win'] as PredictionValue[]).map((val) => (
-                <button key={val} onClick={() => handleSelectOption(val)}
-                  className="py-2 rounded-xl text-xs font-semibold border-2 border-gray-200 text-gray-600 hover:border-blue-400 hover:text-blue-700 hover:bg-blue-50 transition-all">
-                  {PREDICTION_SHORT[val]}
+              {userPrediction && (
+                <button onClick={() => { setEditing(false); setHomePred(String(userPrediction.predicted_home_score)); setAwayPred(String(userPrediction.predicted_away_score)); }} disabled={loading}
+                  className="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-500 hover:bg-gray-50 text-xs font-semibold transition-all">
+                  Hủy sửa
                 </button>
-              ))}
+              )}
             </div>
           </div>
 
-        /* Has prediction, can still change */
         ) : canPredict && userPrediction ? (
+          /* Has prediction, can still change before kickoff */
           <div className="space-y-2">
             <div className="flex items-center justify-center gap-1.5">
-              <span className="text-xs text-gray-400">Đã chọn:</span>
-              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700">
-                {PREDICTION_SHORT[userPrediction]}
+              <span className="text-xs text-gray-400">Bạn đoán:</span>
+              <span className="text-sm font-black px-2.5 py-0.5 rounded-lg bg-blue-100 text-blue-700 tabular-nums">
+                {userPrediction.predicted_home_score} - {userPrediction.predicted_away_score}
               </span>
             </div>
-            <div className="grid grid-cols-3 gap-1">
-              {(['home_win', 'draw', 'away_win'] as PredictionValue[]).map((val) => (
-                <button key={val} onClick={() => handleSelectOption(val)} disabled={loading}
-                  className={clsx(
-                    'py-1.5 rounded-lg text-xs font-semibold border-2 transition-all',
-                    userPrediction === val
-                      ? 'bg-blue-600 border-blue-600 text-white shadow'
-                      : 'border-gray-200 text-gray-400 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50'
-                  )}>
-                  {PREDICTION_SHORT[val]}
-                </button>
-              ))}
+            <div className="flex gap-2">
+              <button onClick={() => setEditing(true)} disabled={loading}
+                className="flex-1 py-1.5 rounded-lg border-2 border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 text-xs font-semibold transition-all">
+                Sửa tỉ số
+              </button>
+              <button onClick={handleCancelPredict} disabled={loading}
+                className="flex-1 py-1.5 rounded-lg border border-red-200 text-red-400 hover:bg-red-50 hover:text-red-600 text-xs font-semibold transition-all disabled:opacity-40">
+                {loading ? 'Đang hủy...' : '✕ Hủy'}
+              </button>
             </div>
-            <button onClick={handleCancelPredict} disabled={loading}
-              className="w-full py-1.5 rounded-lg border border-red-200 text-red-400 hover:bg-red-50 hover:text-red-600 text-xs font-semibold transition-all disabled:opacity-40">
-              {loading ? 'Đang hủy...' : '✕ Hủy dự đoán'}
-            </button>
           </div>
 
-        /* Finished — show result */
         ) : userPrediction ? (
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-xs text-gray-400">Dự đoán:</span>
-            <span className={clsx(
-              'text-xs font-bold px-2.5 py-1 rounded-full',
-              match.user_prediction?.is_correct === true
-                ? 'bg-green-100 text-green-700'
-                : match.user_prediction?.is_correct === false
-                ? 'bg-red-100 text-red-600'
-                : 'bg-blue-100 text-blue-700'
-            )}>
-              {PREDICTION_SHORT[userPrediction]}
-              {match.user_prediction?.is_correct === true  && ' ✓ +3'}
-              {match.user_prediction?.is_correct === false && ' ✗'}
+          /* Match started/finished — show prediction + outcome */
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <span className="text-xs text-gray-400">Bạn đoán:</span>
+            <span className="text-sm font-black px-2 py-0.5 rounded-lg bg-gray-100 text-gray-700 tabular-nums">
+              {userPrediction.predicted_home_score} - {userPrediction.predicted_away_score}
             </span>
+            {match.status === 'finished' && (
+              userPrediction.is_correct === true ? (
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                  ✓ +{userPrediction.points_earned} vcoins
+                </span>
+              ) : userPrediction.is_correct === false ? (
+                <span className={clsx(
+                  'text-xs font-bold px-2 py-0.5 rounded-full',
+                  userPrediction.points_earned < 0 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
+                )}>
+                  {userPrediction.points_earned < 0 ? `${userPrediction.points_earned} vcoins` : '0 vcoins'}
+                </span>
+              ) : null
+            )}
           </div>
 
         ) : !isAuthenticated ? (

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Team;
 use App\Models\WorldCupMatch;
+use App\Services\MatchSettlementService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
@@ -128,9 +129,13 @@ class SyncWorldCupData extends Command
                 ]
             );
 
-            // Settle predictions if match just became finished
-            if ($status === 'finished' && ($match->wasRecentlyCreated || $match->wasChanged('status'))) {
-                $this->settlePredictions($match, $homeScore, $awayScore);
+            // Settle predictions once a match is finished (settle() is idempotent).
+            if ($status === 'finished') {
+                if ($match->result === null) {
+                    $match->result = $match->computeResult();
+                    $match->save();
+                }
+                app(MatchSettlementService::class)->settle($match);
             }
 
             $match->wasRecentlyCreated ? $created++ : $updated++;
@@ -138,25 +143,5 @@ class SyncWorldCupData extends Command
 
         $this->info("[worldcup:sync] Done — {$created} created, {$updated} updated, {$skipped} skipped.");
         return 0;
-    }
-
-    private function settlePredictions(WorldCupMatch $match, ?int $homeScore, ?int $awayScore): void
-    {
-        if ($homeScore === null || $awayScore === null) return;
-
-        $actual = $homeScore > $awayScore ? 'home_win'
-                : ($homeScore < $awayScore ? 'away_win' : 'draw');
-
-        foreach ($match->predictions as $prediction) {
-            $correct = ($prediction->prediction === $actual);
-            $prediction->update(['is_correct' => $correct]);
-            if ($correct) {
-                $prediction->user->increment('total_points', 3);
-            }
-            $prediction->user->increment('total_predictions');
-            if ($correct) {
-                $prediction->user->increment('correct_predictions');
-            }
-        }
     }
 }

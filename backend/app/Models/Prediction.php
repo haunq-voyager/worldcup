@@ -11,8 +11,12 @@ class Prediction extends Model
         'user_id',
         'match_id',
         'prediction',
+        'predicted_home_score',
+        'predicted_away_score',
+        'stake',
         'is_correct',
         'points_earned',
+        'settle_delta',
     ];
 
     protected $casts = [

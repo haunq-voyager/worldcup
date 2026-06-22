@@ -18,6 +18,17 @@ const RANK_ICONS: Record<number, string> = {
   3: '🥉',
 };
 
+const ROUND_TABS: { value: string; label: string }[] = [
+  { value: '', label: 'Tổng' },
+  { value: 'group', label: 'Vòng bảng' },
+  { value: 'round_of_32', label: 'Vòng 32 đội' },
+  { value: 'round_of_16', label: 'Vòng 1/8' },
+  { value: 'quarter_final', label: 'Tứ kết' },
+  { value: 'semi_final', label: 'Bán kết' },
+  { value: 'third_place', label: 'Tranh hạng 3' },
+  { value: 'final', label: 'Chung kết' },
+];
+
 export default function LeaderboardPage() {
   const { user } = useAuth();
   const [leaders, setLeaders] = useState<LeaderboardEntry[]>([]);
@@ -25,15 +36,17 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [round, setRound] = useState('');
 
   useEffect(() => {
-    loadLeaderboard(page);
-  }, [page]);
+    loadLeaderboard(page, round);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, round]);
 
-  const loadLeaderboard = async (p: number) => {
+  const loadLeaderboard = async (p: number, r: string) => {
     setLoading(true);
     try {
-      const res = await leaderboardApi.get(p);
+      const res = await leaderboardApi.get(p, 20, r);
       const paginated = res.data;
       setLeaders(paginated.data as unknown as LeaderboardEntry[]);
       setTotalPages(paginated.last_page);
@@ -43,11 +56,34 @@ export default function LeaderboardPage() {
     }
   };
 
+  const selectRound = (r: string) => {
+    setPage(1);
+    setRound(r);
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="mb-8">
+      <div className="mb-5">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Bảng xếp hạng</h1>
-        <p className="text-gray-500">Top người dự đoán chính xác nhất</p>
+        <p className="text-gray-500">Xếp hạng theo vcoins — tổng hoặc từng vòng đấu</p>
+      </div>
+
+      {/* Round tabs */}
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-5 scrollbar-hide">
+        {ROUND_TABS.map((t) => (
+          <button
+            key={t.value}
+            onClick={() => selectRound(t.value)}
+            className={clsx(
+              'flex-shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all',
+              round === t.value
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* Your rank */}

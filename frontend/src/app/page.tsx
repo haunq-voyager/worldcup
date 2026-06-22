@@ -7,16 +7,15 @@ import { useAuth } from '@/hooks/useAuth';
 import MatchCard from '@/components/MatchCard';
 import HeroBanner from '@/components/HeroBanner';
 import dynamic from 'next/dynamic';
-import type { WorldCupMatch, PredictionValue } from '@/types';
-import { format, isToday, isTomorrow, isYesterday, parseISO, subDays, addDays } from 'date-fns';
-import { vi } from 'date-fns/locale';
+import type { WorldCupMatch } from '@/types';
+import { vnDateKey, vnTodayKey, vnShiftKey, vnWeekdayShort, vnKeyDayMonth, vnKeyFull } from '@/lib/datetime';
 
 const Fireworks = dynamic(() => import('@/components/Fireworks'), { ssr: false });
 
 const ROUND_OPTIONS = [
   { value: '', label: 'Tất cả' },
   { value: 'group', label: 'Vòng bảng' },
-  { value: 'round_of_32', label: 'Vòng 1/16' },
+  { value: 'round_of_32', label: 'Vòng 32 đội' },
   { value: 'round_of_16', label: 'Vòng 1/8' },
   { value: 'quarter_final', label: 'Tứ kết' },
   { value: 'semi_final', label: 'Bán kết' },
@@ -33,36 +32,31 @@ const STATUS_OPTIONS = [
 
 const GROUPS = ['', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
-// Returns "yyyy-MM-dd" key from a match_date string
-function toDateKey(dateStr: string): string {
-  return format(parseISO(dateStr), 'yyyy-MM-dd');
-}
-
 function dateTabLabel(key: string): { line1: string; line2: string; special: 'yesterday' | 'today' | 'tomorrow' | null } {
-  const d = parseISO(key + 'T00:00:00');
-  if (isYesterday(d)) return { line1: 'Hôm qua', line2: format(d, 'dd/MM'), special: 'yesterday' };
-  if (isToday(d))     return { line1: 'Hôm nay',  line2: format(d, 'dd/MM'), special: 'today' };
-  if (isTomorrow(d))  return { line1: 'Ngày mai', line2: format(d, 'dd/MM'), special: 'tomorrow' };
-  return { line1: format(d, 'EEE', { locale: vi }), line2: format(d, 'dd/MM'), special: null };
+  const line2 = vnKeyDayMonth(key);
+  if (key === YESTERDAY_KEY) return { line1: 'Hôm qua', line2, special: 'yesterday' };
+  if (key === TODAY_KEY)     return { line1: 'Hôm nay',  line2, special: 'today' };
+  if (key === TOMORROW_KEY)  return { line1: 'Ngày mai', line2, special: 'tomorrow' };
+  return { line1: vnWeekdayShort(key), line2, special: null };
 }
 
 function groupByDate(matches: WorldCupMatch[]): Map<string, WorldCupMatch[]> {
   const map = new Map<string, WorldCupMatch[]>();
   for (const m of matches) {
-    const key = toDateKey(m.match_date);
+    const key = vnDateKey(m.match_date);
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(m);
   }
   return map;
 }
 
-const TODAY_KEY = format(new Date(), 'yyyy-MM-dd');
-const YESTERDAY_KEY = format(subDays(new Date(), 1), 'yyyy-MM-dd');
-const TOMORROW_KEY = format(addDays(new Date(), 1), 'yyyy-MM-dd');
+const TODAY_KEY = vnTodayKey();
+const YESTERDAY_KEY = vnShiftKey(TODAY_KEY, -1);
+const TOMORROW_KEY = vnShiftKey(TODAY_KEY, 1);
 const NEARBY_KEYS = new Set([YESTERDAY_KEY, TODAY_KEY, TOMORROW_KEY]);
 
 export default function HomePage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refresh: refreshUser } = useAuth();
   const [matches, setMatches] = useState<WorldCupMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -106,15 +100,16 @@ export default function HomePage() {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handlePredict = async (matchId: number, value: PredictionValue) => {
+  const handlePredict = async (matchId: number, homeScore: number, awayScore: number) => {
     if (predicting) return;
     setPredicting(matchId);
     try {
-      const saved: Prediction = await predictionsApi.create(matchId, value);
+      const saved: Prediction = await predictionsApi.create(matchId, homeScore, awayScore);
       setMatches((prev) =>
         prev.map((m) => m.id === matchId ? { ...m, user_prediction: saved } : m)
       );
-      showToast('Dự đoán của bạn đã được lưu!');
+      refreshUser();
+      showToast('Đã đặt cược 10 vcoins!');
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
       showToast(err?.response?.data?.message || 'Có lỗi xảy ra, vui lòng thử lại.');
@@ -129,6 +124,7 @@ export default function HomePage() {
       setMatches((prev) =>
         prev.map((m) => m.id === matchId ? { ...m, user_prediction: null } : m)
       );
+      refreshUser();
       showToast('Đã hủy dự đoán.');
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } };
@@ -327,7 +323,7 @@ export default function HomePage() {
               {dateTabLabel(effectiveDate).line1}
               {!NEARBY_KEYS.has(effectiveDate) && (
                 <span className="ml-2 text-gray-400 font-normal text-sm">
-                  — {format(parseISO(effectiveDate + 'T00:00:00'), 'EEEE, dd/MM/yyyy', { locale: vi })}
+                  — {vnKeyFull(effectiveDate)}
                 </span>
               )}
             </h2>

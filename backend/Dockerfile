@@ -21,6 +21,7 @@ RUN composer config --global process-timeout 600 \
 COPY app/Models/           app/Models/
 COPY app/Http/Controllers/ app/Http/Controllers/
 COPY app/Console/Commands/ app/Console/Commands/
+COPY app/Services/         app/Services/
 COPY database/migrations/  database/migrations/
 COPY database/seeders/     database/seeders/
 COPY routes/api.php        routes/api.php

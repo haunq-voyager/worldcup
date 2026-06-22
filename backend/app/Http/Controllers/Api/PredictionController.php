@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Prediction;
 use App\Models\WorldCupMatch;
+use App\Services\MatchSettlementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,8 +14,9 @@ class PredictionController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'match_id'   => 'required|exists:world_cup_matches,id',
-            'prediction' => 'required|in:home_win,draw,away_win',
+            'match_id'             => 'required|exists:world_cup_matches,id',
+            'predicted_home_score' => 'required|integer|min:0|max:99',
+            'predicted_away_score' => 'required|integer|min:0|max:99',
         ]);
 
         $match = WorldCupMatch::findOrFail($validated['match_id']);
@@ -22,7 +24,6 @@ class PredictionController extends Controller
         if ($match->status !== 'scheduled') {
             return response()->json(['message' => 'Trận đấu đã bắt đầu hoặc kết thúc, không thể dự đoán.'], 422);
         }
-
         if ($match->match_date->isPast()) {
             return response()->json(['message' => 'Thời gian dự đoán đã hết.'], 422);
         }
@@ -30,10 +31,12 @@ class PredictionController extends Controller
         $prediction = Prediction::updateOrCreate(
             [
                 'user_id'  => $request->user()->id,
-                'match_id' => $validated['match_id'],
+                'match_id' => $match->id,
             ],
             [
-                'prediction' => $validated['prediction'],
+                'predicted_home_score' => $validated['predicted_home_score'],
+                'predicted_away_score' => $validated['predicted_away_score'],
+                'stake'                => MatchSettlementService::STAKE,
             ]
         );
 
@@ -63,6 +66,6 @@ class PredictionController extends Controller
 
         $prediction->delete();
 
-        return response()->json(['message' => 'Đã xóa dự đoán.']);
+        return response()->json(['message' => 'Đã hủy dự đoán.']);
     }
 }
