@@ -21,10 +21,14 @@ class WorldCupMatch extends Model
         'home_score',
         'away_score',
         'result',
+        'odds',
+        'odds_updated_at',
     ];
 
     protected $casts = [
-        'match_date' => 'datetime',
+        'match_date'      => 'datetime',
+        'odds'            => 'array',
+        'odds_updated_at' => 'datetime',
     ];
 
     public function homeTeam(): BelongsTo

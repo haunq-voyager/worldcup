@@ -24,6 +24,18 @@ export type MatchStatus = 'scheduled' | 'live' | 'finished';
 export type MatchResult = 'home_win' | 'draw' | 'away_win';
 export type PredictionValue = 'home_win' | 'draw' | 'away_win';
 
+export interface MatchOdds {
+  h2h?: { home: number | null; draw: number | null; away: number | null; book: string };
+  spreads?: {
+    home_point: number | null;
+    home_price: number | null;
+    away_point: number | null;
+    away_price: number | null;
+    book: string;
+  };
+  totals?: { point: number | null; over: number | null; under: number | null; book: string };
+}
+
 export interface WorldCupMatch {
   id: number;
   home_team_id: number;
@@ -38,6 +50,8 @@ export interface WorldCupMatch {
   home_score: number | null;
   away_score: number | null;
   result: MatchResult | null;
+  odds?: MatchOdds | null;
+  odds_updated_at?: string | null;
   user_prediction?: Prediction | null;
 }
 

@@ -42,6 +42,7 @@ services:
       QUEUE_CONNECTION: sync
       SANCTUM_STATEFUL_DOMAINS: "192.168.1.79:3000"
       FOOTBALL_DATA_TOKEN: "8c7ff8d5cf174eeb8c393fbef2819448"
+      ODDS_API_KEY: "d1939f55377d9ab41d400554f5711742"
     ports:
       - "8000:8000"
     depends_on:
@@ -69,6 +70,7 @@ services:
       SESSION_DRIVER: file
       QUEUE_CONNECTION: sync
       FOOTBALL_DATA_TOKEN: "8c7ff8d5cf174eeb8c393fbef2819448"
+      ODDS_API_KEY: "d1939f55377d9ab41d400554f5711742"
     depends_on:
       postgres:
         condition: service_healthy

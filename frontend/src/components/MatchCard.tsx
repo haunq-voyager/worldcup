@@ -38,6 +38,12 @@ const PREDICTION_SHORT: Record<PredictionValue, string> = {
   away_win: 'Khách',
 };
 
+const fmtOdd = (n: number | null | undefined): string =>
+  n === null || n === undefined ? '–' : n.toFixed(2);
+
+const fmtPoint = (p: number | null | undefined): string =>
+  p === null || p === undefined ? '' : p > 0 ? `+${p}` : `${p}`;
+
 export default function MatchCard({ match, onPredict, onCancelPredict, isAuthenticated, isAdmin, onResultUpdated }: MatchCardProps) {
   const [pendingValue, setPendingValue] = useState<PredictionValue | null>(null);
   const [loading, setLoading] = useState(false);
@@ -178,6 +184,67 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
           </span>
         </div>
       </div>
+
+      {/* Odds (reference) — upcoming/live only */}
+      {(match.status === 'scheduled' || match.status === 'live') && match.odds && (
+        <div className="border-t border-gray-100 px-3 pt-2 pb-1.5 bg-gray-50/60">
+          <p className="text-[10px] text-gray-400 font-semibold mb-1 flex items-center gap-1">
+            📊 Tỷ lệ tham khảo
+          </p>
+
+          {/* 1x2 */}
+          {match.odds.h2h && (
+            <div className="grid grid-cols-3 gap-1 mb-1">
+              {([
+                { k: '1', v: match.odds.h2h.home },
+                { k: 'X', v: match.odds.h2h.draw },
+                { k: '2', v: match.odds.h2h.away },
+              ] as const).map(({ k, v }) => (
+                <div key={k} className="flex flex-col items-center bg-white rounded-md border border-gray-100 py-1">
+                  <span className="text-[9px] text-gray-400 font-bold">{k}</span>
+                  <span className="text-xs font-black text-gray-800 tabular-nums">{fmtOdd(v)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-1">
+            {/* Handicap (chấp) */}
+            {match.odds.spreads && (
+              <div className="bg-white rounded-md border border-gray-100 px-1.5 py-1">
+                <p className="text-[9px] text-gray-400 font-bold leading-none mb-1">Kèo chấp</p>
+                <div className="flex items-center justify-between text-[10px] leading-tight">
+                  <span className="font-bold text-gray-700">{match.home_team.country_code}</span>
+                  <span className="text-gray-500 tabular-nums">
+                    {fmtPoint(match.odds.spreads.home_point)} <span className="text-blue-600 font-bold">{fmtOdd(match.odds.spreads.home_price)}</span>
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] leading-tight">
+                  <span className="font-bold text-gray-700">{match.away_team.country_code}</span>
+                  <span className="text-gray-500 tabular-nums">
+                    {fmtPoint(match.odds.spreads.away_point)} <span className="text-blue-600 font-bold">{fmtOdd(match.odds.spreads.away_price)}</span>
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Over/Under (tài/xỉu) */}
+            {match.odds.totals && (
+              <div className="bg-white rounded-md border border-gray-100 px-1.5 py-1">
+                <p className="text-[9px] text-gray-400 font-bold leading-none mb-1">Tài/Xỉu {match.odds.totals.point}</p>
+                <div className="flex items-center justify-between text-[10px] leading-tight">
+                  <span className="font-bold text-gray-700">Tài</span>
+                  <span className="text-blue-600 font-bold tabular-nums">{fmtOdd(match.odds.totals.over)}</span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] leading-tight">
+                  <span className="font-bold text-gray-700">Xỉu</span>
+                  <span className="text-blue-600 font-bold tabular-nums">{fmtOdd(match.odds.totals.under)}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Prediction section */}
       <div className="border-t border-gray-100 px-3 py-3 mt-auto">
