@@ -61,7 +61,7 @@ export default function LeaderboardSidebar({ onClose }: { onClose?: () => void }
       {/* My rank highlight */}
       {user && myRank && (
         <div className="mb-3 px-3 py-2 bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl text-white">
-          <p className="text-[10px] text-blue-200 font-medium">Điểm của bạn</p>
+          <p className="text-[10px] text-blue-200 font-medium">Vcoins của bạn</p>
           <div className="flex items-center justify-between mt-0.5">
             <div className="flex items-center gap-1.5">
               <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-black">
@@ -69,7 +69,7 @@ export default function LeaderboardSidebar({ onClose }: { onClose?: () => void }
               </div>
               <span className="text-xs font-semibold truncate max-w-[90px]">{user.name}</span>
             </div>
-            <span className="text-sm font-black">{user.total_points}pts</span>
+            <span className="text-sm font-black">{user.total_points} vcoins</span>
           </div>
         </div>
       )}
@@ -139,7 +139,7 @@ export default function LeaderboardSidebar({ onClose }: { onClose?: () => void }
                   )}>
                     {entry.total_points}
                   </span>
-                  <span className="text-[10px] text-gray-400 ml-0.5">pts</span>
+                  <span className="text-[10px] text-gray-400 ml-0.5">vcoins</span>
                 </div>
               </div>
             );

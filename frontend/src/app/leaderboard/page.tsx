@@ -59,7 +59,7 @@ export default function LeaderboardPage() {
           </div>
           <div className="text-right">
             <p className="text-blue-200 text-sm">{user.name}</p>
-            <p className="text-2xl font-bold">{user.total_points} điểm</p>
+            <p className="text-2xl font-bold">{user.total_points} vcoins</p>
             <p className="text-blue-200 text-xs">{user.correct_predictions}/{user.total_predictions} đúng</p>
           </div>
         </div>
@@ -71,7 +71,7 @@ export default function LeaderboardPage() {
           <div className="col-span-1 text-center">#</div>
           <div className="col-span-4">Người chơi</div>
           <div className="col-span-3 hidden sm:block">Email</div>
-          <div className="col-span-2 text-center">Điểm</div>
+          <div className="col-span-2 text-center">Vcoins</div>
           <div className="col-span-2 text-center hidden sm:block">Đúng</div>
           <div className="col-span-2 text-center sm:hidden">Tỷ lệ</div>
         </div>
@@ -135,7 +135,7 @@ export default function LeaderboardPage() {
                   {/* Points */}
                   <div className="col-span-2 text-center">
                     <span className="text-sm font-bold text-gray-900">{entry.total_points}</span>
-                    <span className="text-xs text-gray-400 ml-1">pts</span>
+                    <span className="text-xs text-gray-400 ml-1">vcoins</span>
                   </div>
 
                   {/* Correct (desktop) / Accuracy (mobile) */}

@@ -15,6 +15,12 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!form.email.toLowerCase().endsWith('@voyager-hcm.com')) {
+      setError('Tài khoản không thuộc quyền cho phép truy cập.');
+      return;
+    }
+
     setLoading(true);
     try {
       await login(form.email, form.password);
@@ -57,7 +63,7 @@ export default function LoginPage() {
                 required
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="you@example.com"
+                placeholder="you@voyager-hcm.com"
                 className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>

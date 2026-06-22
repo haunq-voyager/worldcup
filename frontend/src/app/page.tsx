@@ -180,7 +180,7 @@ export default function HomePage() {
               <div className="flex gap-6 ml-auto flex-wrap">
                 <div className="text-center">
                   <p className="text-2xl font-black">{user.total_points}</p>
-                  <p className="text-blue-200 text-xs">điểm</p>
+                  <p className="text-blue-200 text-xs">vcoins</p>
                 </div>
                 <div className="text-center">
                   <p className="text-2xl font-black">{user.correct_predictions}/{user.total_predictions}</p>

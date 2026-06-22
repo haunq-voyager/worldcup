@@ -15,8 +15,10 @@ class AuthController extends Controller
     {
         $validated = $request->validate([
             'name'     => 'required|string|max:255',
-            'email'    => 'required|email|unique:users,email',
+            'email'    => 'required|email|ends_with:@voyager-hcm.com|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
+        ], [
+            'email.ends_with' => 'Tài khoản không thuộc quyền cho phép truy cập.',
         ]);
 
         $user = User::create([
@@ -36,8 +38,10 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'email'    => 'required|email',
+            'email'    => 'required|email|ends_with:@voyager-hcm.com',
             'password' => 'required|string',
+        ], [
+            'email.ends_with' => 'Tài khoản không thuộc quyền cho phép truy cập.',
         ]);
 
         $user = User::where('email', $request->email)->first();

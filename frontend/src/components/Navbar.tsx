@@ -204,7 +204,7 @@ export default function Navbar() {
                     </div>
                     <div className="text-left">
                       <p className="text-white text-sm font-medium leading-tight">{user.name}</p>
-                      <p className="text-yellow-300 text-xs font-semibold">{user.total_points} điểm</p>
+                      <p className="text-yellow-300 text-xs font-semibold">{user.total_points} vcoins</p>
                     </div>
                     <svg className={clsx('w-4 h-4 text-blue-200 transition-transform', dropdownOpen && 'rotate-180')} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -282,7 +282,7 @@ export default function Navbar() {
                   <>
                     <div className="px-4 py-2">
                       <p className="text-white text-sm font-semibold">{user.name}</p>
-                      <p className="text-blue-200 text-xs">{user.email} · {user.total_points} điểm</p>
+                      <p className="text-blue-200 text-xs">{user.email} · {user.total_points} vcoins</p>
                     </div>
                     <button
                       onClick={() => { setMenuOpen(false); openEditModal(); }}

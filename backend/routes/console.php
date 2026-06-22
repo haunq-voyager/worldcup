@@ -2,5 +2,5 @@
 
 use Illuminate\Support\Facades\Schedule;
 
-// Sync World Cup data every 6 hours
-Schedule::command('worldcup:sync')->everySixHours();
+// Sync World Cup match results every 30 minutes
+Schedule::command('worldcup:sync')->everyThirtyMinutes()->withoutOverlapping();

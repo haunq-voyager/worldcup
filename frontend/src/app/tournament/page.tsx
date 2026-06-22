@@ -117,7 +117,7 @@ export default function TournamentPage() {
         <div className="max-w-5xl mx-auto text-center">
           <div className="text-5xl mb-3">🏆</div>
           <h1 className="text-2xl font-black mb-1">Dự đoán Toàn giải</h1>
-          <p className="text-blue-200 text-sm">Dự đoán đội vô địch, á quân, bán kết và tứ kết · Kiếm thêm điểm thưởng</p>
+          <p className="text-blue-200 text-sm">Dự đoán đội vô địch, á quân, bán kết và tứ kết · Kiếm thêm vcoins thưởng</p>
 
           {/* Points info */}
           <div className="flex flex-wrap justify-center gap-3 mt-5">
@@ -125,7 +125,7 @@ export default function TournamentPage() {
               <div key={s.key} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-white/10 border border-white/20">
                 <span>{s.emoji}</span>
                 <span>{s.label}</span>
-                <span className="text-yellow-300">+{s.points} điểm</span>
+                <span className="text-yellow-300">+{s.points} vcoins</span>
               </div>
             ))}
           </div>
@@ -162,7 +162,7 @@ export default function TournamentPage() {
                     </span>
                   </div>
                   <p className="font-bold text-gray-900 text-sm">{s.label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">+{s.points} điểm/đội</p>
+                  <p className="text-xs text-gray-400 mt-0.5">+{s.points} vcoins/đội</p>
 
                   {/* Mini flags */}
                   {stagePicks.length > 0 && (
@@ -186,7 +186,7 @@ export default function TournamentPage() {
                   {(correct > 0 || wrong > 0) && (
                     <p className="text-xs mt-1">
                       {correct > 0 && <span className="text-green-600 font-semibold">✓ {correct} đúng · </span>}
-                      {correct * s.points > 0 && <span className="text-yellow-600 font-bold">+{correct * s.points} điểm</span>}
+                      {correct * s.points > 0 && <span className="text-yellow-600 font-bold">+{correct * s.points} vcoins</span>}
                     </p>
                   )}
                 </button>
@@ -203,7 +203,7 @@ export default function TournamentPage() {
               <div>
                 <p className="text-sm opacity-80">{stageInfo.desc}</p>
                 <h2 className="text-xl font-black mt-0.5">
-                  {stageInfo.emoji} {stageInfo.label} · +{stageInfo.points} điểm/đội
+                  {stageInfo.emoji} {stageInfo.label} · +{stageInfo.points} vcoins/đội
                 </h2>
               </div>
               <div className="text-right">
@@ -330,12 +330,12 @@ export default function TournamentPage() {
 
         {/* Tips */}
         <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-2xl text-sm text-blue-700">
-          <p className="font-semibold mb-1">💡 Cách tính điểm</p>
+          <p className="font-semibold mb-1">💡 Cách tính vcoins</p>
           <ul className="space-y-0.5 text-xs">
-            <li>🏅 Mỗi đội bạn chọn vào <strong>tứ kết</strong> mà thực sự vào tứ kết: <strong>+2 điểm</strong></li>
-            <li>🥉 Mỗi đội bạn chọn vào <strong>bán kết</strong> mà thực sự vào bán kết: <strong>+3 điểm</strong></li>
-            <li>🥈 Đội <strong>á quân</strong> đúng: <strong>+6 điểm</strong></li>
-            <li>🏆 Đội <strong>vô địch</strong> đúng: <strong>+10 điểm</strong></li>
+            <li>🏅 Mỗi đội bạn chọn vào <strong>tứ kết</strong> mà thực sự vào tứ kết: <strong>+2 vcoins</strong></li>
+            <li>🥉 Mỗi đội bạn chọn vào <strong>bán kết</strong> mà thực sự vào bán kết: <strong>+3 vcoins</strong></li>
+            <li>🥈 Đội <strong>á quân</strong> đúng: <strong>+6 vcoins</strong></li>
+            <li>🏆 Đội <strong>vô địch</strong> đúng: <strong>+10 vcoins</strong></li>
           </ul>
         </div>
       </div>

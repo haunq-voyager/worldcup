@@ -21,6 +21,11 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
 
+    if (!form.email.toLowerCase().endsWith('@voyager-hcm.com')) {
+      setError('Tài khoản không thuộc quyền cho phép truy cập.');
+      return;
+    }
+
     if (form.password !== form.password_confirmation) {
       setError('Mật khẩu xác nhận không khớp.');
       return;
@@ -78,7 +83,7 @@ export default function RegisterPage() {
                 required
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="you@example.com"
+                placeholder="you@voyager-hcm.com"
                 className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -125,8 +130,8 @@ export default function RegisterPage() {
 
         {/* Info box */}
         <div className="mt-4 p-4 bg-blue-50 rounded-xl text-sm text-blue-700">
-          <p className="font-semibold mb-1">Cách tính điểm:</p>
-          <p>Dự đoán đúng kết quả (thắng/thua/hòa) = <strong>+3 điểm</strong></p>
+          <p className="font-semibold mb-1">Cách tính vcoins:</p>
+          <p>Dự đoán đúng kết quả (thắng/thua/hòa) = <strong>+3 vcoins</strong></p>
         </div>
       </div>
     </div>

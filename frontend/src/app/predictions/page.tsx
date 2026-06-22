@@ -72,7 +72,7 @@ export default function PredictionsPage() {
           { label: 'Tổng dự đoán', value: stats.total, color: 'bg-blue-50 text-blue-800' },
           { label: 'Đúng', value: stats.correct, color: 'bg-green-50 text-green-800' },
           { label: 'Sai', value: stats.wrong, color: 'bg-red-50 text-red-800' },
-          { label: 'Điểm kiếm được', value: `+${stats.points}`, color: 'bg-yellow-50 text-yellow-800' },
+          { label: 'Vcoins kiếm được', value: `+${stats.points}`, color: 'bg-yellow-50 text-yellow-800' },
         ].map((s) => (
           <div key={s.label} className={`rounded-xl p-4 ${s.color}`}>
             <p className="text-sm opacity-70">{s.label}</p>
@@ -165,10 +165,10 @@ export default function PredictionsPage() {
                       {PREDICTION_LABELS[prediction.prediction]}
                     </span>
                     {prediction.is_correct === true && (
-                      <p className="text-xs text-green-600 font-bold mt-1">+{prediction.points_earned} điểm</p>
+                      <p className="text-xs text-green-600 font-bold mt-1">+{prediction.points_earned} vcoins</p>
                     )}
                     {prediction.is_correct === false && (
-                      <p className="text-xs text-red-400 mt-1">0 điểm</p>
+                      <p className="text-xs text-red-400 mt-1">0 vcoins</p>
                     )}
                     {prediction.is_correct === null && (
                       <p className="text-xs text-gray-400 mt-1">Chờ kết quả</p>

@@ -11,94 +11,105 @@ use Illuminate\Support\Facades\Http;
 class SyncWorldCupData extends Command
 {
     protected $signature   = 'worldcup:sync';
-    protected $description = 'Sync World Cup 2026 match results from worldcup26.ir';
+    protected $description = 'Sync World Cup 2026 match results from api.football-data.org';
 
-    // worldcup26.ir team id → our country_code
-    private const TEAM_MAP = [
-        '1'=>'MEX','2'=>'RSA','3'=>'KOR','4'=>'CZE',
-        '5'=>'CAN','6'=>'BIH','7'=>'QAT','8'=>'SUI',
-        '9'=>'BRA','10'=>'MAR','11'=>'HAI','12'=>'SCO',
-        '13'=>'USA','14'=>'PAR','15'=>'AUS','16'=>'TUR',
-        '17'=>'GER','18'=>'CUW','19'=>'CIV','20'=>'ECU',
-        '21'=>'NED','22'=>'JPN','23'=>'SWE','24'=>'TUN',
-        '25'=>'BEL','26'=>'EGY','27'=>'IRN','28'=>'NZL',
-        '29'=>'ESP','30'=>'CPV','31'=>'KSA','32'=>'URU',
-        '33'=>'FRA','34'=>'SEN','35'=>'IRQ','36'=>'NOR',
-        '37'=>'ARG','38'=>'ALG','39'=>'AUT','40'=>'JOR',
-        '41'=>'POR','42'=>'COD','43'=>'UZB','44'=>'COL',
-        '45'=>'ENG','46'=>'CRO','47'=>'GHA','48'=>'PAN',
-    ];
+    private const API_URL = 'https://api.football-data.org/v4/matches';
 
-    private const ROUND_MAP = [
-        'group'         => 'group',
-        'round_of_32'   => 'round_of_32',
-        'round_of_16'   => 'round_of_16',
-        'quarter_final' => 'quarter_final',
-        'semi_final'    => 'semi_final',
-        'third_place'   => 'third_place',
-        'final'         => 'final',
+    // football-data.org stage → our round
+    private const STAGE_MAP = [
+        'GROUP_STAGE'    => 'group',
+        'LAST_32'        => 'round_of_32',
+        'LAST_16'        => 'round_of_16',
+        'QUARTER_FINALS' => 'quarter_final',
+        'SEMI_FINALS'    => 'semi_final',
+        'THIRD_PLACE'    => 'third_place',
+        'FINAL'          => 'final',
     ];
 
     public function handle(): int
     {
-        $this->info('[worldcup:sync] Fetching games from worldcup26.ir...');
+        $token = env('FOOTBALL_DATA_TOKEN');
+        if (empty($token)) {
+            $this->error('FOOTBALL_DATA_TOKEN is not set.');
+            return 1;
+        }
+
+        $this->info('[worldcup:sync] Fetching matches from football-data.org...');
 
         try {
-            $response = Http::timeout(30)->get('https://worldcup26.ir/get/games');
+            $response = Http::timeout(30)
+                ->withHeaders(['X-Auth-Token' => $token])
+                ->get(self::API_URL);
         } catch (\Throwable $e) {
             $this->error('HTTP error: ' . $e->getMessage());
             return 1;
         }
 
         if (!$response->ok()) {
-            $this->error('API returned status ' . $response->status());
+            $this->error('API returned status ' . $response->status() . ': ' . $response->body());
             return 1;
         }
 
-        $games = $response->json('games', []);
-        if (empty($games)) {
-            $this->warn('No games returned from API.');
+        $matches = $response->json('matches', []);
+        if (empty($matches)) {
+            $this->warn('No matches returned from API.');
             return 0;
         }
 
-        // Build team lookup keyed by country_code
-        $teams = Team::all()->keyBy('country_code');
+        // Build team lookup keyed by country_code (= football-data TLA)
+        $teams   = Team::all()->keyBy('country_code');
         $created = 0;
         $updated = 0;
+        $skipped = 0;
 
-        foreach ($games as $game) {
-            $homeCode = self::TEAM_MAP[$game['home_team_id'] ?? ''] ?? null;
-            $awayCode = self::TEAM_MAP[$game['away_team_id'] ?? ''] ?? null;
-            if (!$homeCode || !$awayCode) continue;
+        foreach ($matches as $game) {
+            // Only World Cup matches
+            if (($game['competition']['code'] ?? null) !== 'WC') {
+                continue;
+            }
+
+            $homeCode = $game['homeTeam']['tla'] ?? null;
+            $awayCode = $game['awayTeam']['tla'] ?? null;
+            if (!$homeCode || !$awayCode) {
+                $skipped++;
+                continue;
+            }
 
             $homeTeam = $teams[$homeCode] ?? null;
             $awayTeam = $teams[$awayCode] ?? null;
-            if (!$homeTeam || !$awayTeam) continue;
+            if (!$homeTeam || !$awayTeam) {
+                $skipped++;
+                continue;
+            }
 
-            // Parse date (API timezone: America/Los_Angeles = PDT/UTC-7)
+            // Date (API is UTC ISO-8601)
             try {
-                $dt = Carbon::createFromFormat('m/d/Y H:i', $game['local_date'], 'America/Los_Angeles')
-                    ->setTimezone('UTC');
+                $dt = Carbon::parse($game['utcDate'])->setTimezone('UTC');
             } catch (\Throwable) {
+                $skipped++;
                 continue;
             }
 
             // Status
-            $finished = strtoupper($game['finished'] ?? '') === 'TRUE';
-            $elapsed  = strtolower(trim($game['time_elapsed'] ?? ''));
-            if ($finished || $elapsed === 'finished') {
+            $apiStatus = strtoupper($game['status'] ?? 'SCHEDULED');
+            if (in_array($apiStatus, ['FINISHED', 'AWARDED'], true)) {
                 $status = 'finished';
-            } elseif ($elapsed === 'ht' || (is_numeric($elapsed) && (int)$elapsed > 0)) {
-                // Only live if HT or actual elapsed minutes > 0
+            } elseif (in_array($apiStatus, ['IN_PLAY', 'PAUSED'], true)) {
                 $status = 'live';
             } else {
                 $status = 'scheduled';
             }
 
-            $homeScore = ($status !== 'scheduled') ? (int)($game['home_score'] ?? 0) : null;
-            $awayScore = ($status !== 'scheduled') ? (int)($game['away_score'] ?? 0) : null;
-            $round     = self::ROUND_MAP[$game['type'] ?? 'group'] ?? 'group';
-            $group     = ($round === 'group') ? ($game['group'] ?? null) : null;
+            $homeScore = ($status !== 'scheduled') ? ($game['score']['fullTime']['home'] ?? null) : null;
+            $awayScore = ($status !== 'scheduled') ? ($game['score']['fullTime']['away'] ?? null) : null;
+
+            $round = self::STAGE_MAP[$game['stage'] ?? ''] ?? 'group';
+
+            // group like "GROUP_A" → "A"
+            $group = null;
+            if ($round === 'group' && !empty($game['group'])) {
+                $group = trim(str_ireplace('group', '', str_replace('_', ' ', $game['group'])));
+            }
 
             $match = WorldCupMatch::updateOrCreate(
                 [
@@ -112,7 +123,7 @@ class SyncWorldCupData extends Command
                     'status'     => $status,
                     'home_score' => $homeScore,
                     'away_score' => $awayScore,
-                    'venue'      => 'Stadium ' . ($group ?? $round),
+                    'venue'      => $game['venue'] ?? ('Stadium ' . ($group ?? $round)),
                 ]
             );
 
@@ -124,7 +135,7 @@ class SyncWorldCupData extends Command
             $match->wasRecentlyCreated ? $created++ : $updated++;
         }
 
-        $this->info("[worldcup:sync] Done — {$created} created, {$updated} updated.");
+        $this->info("[worldcup:sync] Done — {$created} created, {$updated} updated, {$skipped} skipped.");
         return 0;
     }
 
