@@ -125,6 +125,7 @@ export default function LeaderboardSidebar({ onClose }: { onClose?: () => void }
                     {entry.name}
                     {isMe && <span className="ml-1 text-blue-400 font-normal">(bạn)</span>}
                   </p>
+                  <p className="text-[10px] text-gray-400 truncate">{entry.email}</p>
                   <p className="text-[10px] text-gray-400">
                     {entry.correct_predictions}/{entry.total_predictions} đúng
                   </p>

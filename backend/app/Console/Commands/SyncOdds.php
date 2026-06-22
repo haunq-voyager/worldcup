@@ -89,18 +89,30 @@ class SyncOdds extends Command
             $homeId = $teams[$homeCode]->id;
             $awayId = $teams[$awayCode]->id;
 
-            // Find our match in either orientation, upcoming/live only
-            $match = WorldCupMatch::whereIn('status', ['scheduled', 'live'])
+            // Candidate matches with this team pair (either orientation), upcoming/live only
+            $candidates = WorldCupMatch::whereIn('status', ['scheduled', 'live'])
                 ->where(function ($q) use ($homeId, $awayId) {
                     $q->where(['home_team_id' => $homeId, 'away_team_id' => $awayId])
                       ->orWhere(['home_team_id' => $awayId, 'away_team_id' => $homeId]);
                 })
-                ->orderBy('match_date')
-                ->first();
+                ->get();
 
-            if (!$match) {
+            if ($candidates->isEmpty()) {
                 $skipped++;
                 continue;
+            }
+
+            // Pick the fixture closest in time to the odds event's kickoff
+            $match = $candidates->first();
+            if ($candidates->count() > 1 && !empty($event['commence_time'])) {
+                try {
+                    $commence = \Carbon\Carbon::parse($event['commence_time']);
+                    $match = $candidates->sortBy(
+                        fn ($m) => abs($m->match_date->diffInSeconds($commence, false))
+                    )->first();
+                } catch (\Throwable) {
+                    // keep first
+                }
             }
 
             $odds = $this->extractOdds($event, $homeName, $awayName);

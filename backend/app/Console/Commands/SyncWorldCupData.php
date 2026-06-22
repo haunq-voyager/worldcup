@@ -13,7 +13,8 @@ class SyncWorldCupData extends Command
     protected $signature   = 'worldcup:sync';
     protected $description = 'Sync World Cup 2026 match results from api.football-data.org';
 
-    private const API_URL = 'https://api.football-data.org/v4/matches';
+    // Full competition feed (all matches, past + upcoming) so finished results sync too.
+    private const API_URL = 'https://api.football-data.org/v4/competitions/WC/matches';
 
     // football-data.org stage → our round
     private const STAGE_MAP = [
@@ -63,8 +64,8 @@ class SyncWorldCupData extends Command
         $skipped = 0;
 
         foreach ($matches as $game) {
-            // Only World Cup matches
-            if (($game['competition']['code'] ?? null) !== 'WC') {
+            // Only World Cup matches (competition key may be omitted on the competition feed)
+            if (isset($game['competition']['code']) && $game['competition']['code'] !== 'WC') {
                 continue;
             }
 
