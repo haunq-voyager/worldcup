@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { vnTime, vnDateShort } from '@/lib/datetime';
 import type { WorldCupMatch } from '@/types';
-import { matchesApi } from '@/lib/api';
 import MatchPredictionsModal from '@/components/MatchPredictionsModal';
 import clsx from 'clsx';
 
@@ -12,8 +11,6 @@ interface MatchCardProps {
   onPredict?: (matchId: number, homeScore: number, awayScore: number) => Promise<void>;
   onCancelPredict?: (predictionId: number, matchId: number) => Promise<void>;
   isAuthenticated?: boolean;
-  isAdmin?: boolean;
-  onResultUpdated?: (match: WorldCupMatch) => void;
 }
 
 const STAKE = 10;
@@ -34,7 +31,7 @@ const fmtOdd = (n: number | null | undefined): string =>
 const fmtPoint = (p: number | null | undefined): string =>
   p === null || p === undefined ? '' : p > 0 ? `+${p}` : `${p}`;
 
-export default function MatchCard({ match, onPredict, onCancelPredict, isAuthenticated, isAdmin, onResultUpdated }: MatchCardProps) {
+export default function MatchCard({ match, onPredict, onCancelPredict, isAuthenticated }: MatchCardProps) {
   const userPrediction = match.user_prediction ?? null;
 
   const [homePred, setHomePred] = useState(userPrediction ? String(userPrediction.predicted_home_score) : '');
@@ -42,33 +39,6 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [predictionsOpen, setPredictionsOpen] = useState(false);
-
-  const [adminOpen, setAdminOpen] = useState(false);
-  const [homeInput, setHomeInput] = useState(match.home_score?.toString() ?? '');
-  const [awayInput, setAwayInput] = useState(match.away_score?.toString() ?? '');
-  const [adminLoading, setAdminLoading] = useState(false);
-  const [adminError, setAdminError] = useState('');
-
-  const handleAdminSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const h = parseInt(homeInput, 10);
-    const a = parseInt(awayInput, 10);
-    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) {
-      setAdminError('Tỷ số không hợp lệ');
-      return;
-    }
-    setAdminLoading(true);
-    setAdminError('');
-    try {
-      const updated = await matchesApi.updateResult(match.id, h, a);
-      setAdminOpen(false);
-      onResultUpdated?.(updated);
-    } catch {
-      setAdminError('Không thể cập nhật kết quả');
-    } finally {
-      setAdminLoading(false);
-    }
-  };
 
   const matchDate = new Date(match.match_date);
   const isPast = matchDate < new Date();
@@ -336,49 +306,6 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
           {match.status === 'finished' ? 'Kết quả dự đoán' : 'Xem dự đoán của mọi người'}
         </button>
       </div>
-
-      {/* Admin result editor */}
-      {isAdmin && (
-        <div className="border-t border-orange-100 px-3 py-2 bg-orange-50/50">
-          {!adminOpen ? (
-            <button
-              onClick={() => { setAdminOpen(true); setHomeInput(match.home_score?.toString() ?? ''); setAwayInput(match.away_score?.toString() ?? ''); }}
-              className="w-full text-xs text-orange-600 font-semibold py-1 rounded-lg hover:bg-orange-100 transition-colors flex items-center justify-center gap-1"
-            >
-              <span>✏️</span> Nhập kết quả
-            </button>
-          ) : (
-            <form onSubmit={handleAdminSubmit} className="space-y-2">
-              <div className="flex items-center gap-2">
-                <input
-                  type="number" min="0" max="99" required
-                  value={homeInput} onChange={e => setHomeInput(e.target.value)}
-                  className="w-full border border-orange-200 rounded-lg px-2 py-1.5 text-center text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  placeholder="0"
-                />
-                <span className="text-gray-400 font-bold text-sm flex-shrink-0">-</span>
-                <input
-                  type="number" min="0" max="99" required
-                  value={awayInput} onChange={e => setAwayInput(e.target.value)}
-                  className="w-full border border-orange-200 rounded-lg px-2 py-1.5 text-center text-sm font-bold focus:outline-none focus:ring-2 focus:ring-orange-400"
-                  placeholder="0"
-                />
-              </div>
-              {adminError && <p className="text-xs text-red-500 text-center">{adminError}</p>}
-              <div className="flex gap-2">
-                <button type="submit" disabled={adminLoading}
-                  className="flex-1 py-1.5 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-xs font-bold rounded-lg transition-colors">
-                  {adminLoading ? 'Đang lưu...' : 'Lưu kết quả'}
-                </button>
-                <button type="button" onClick={() => setAdminOpen(false)}
-                  className="flex-1 py-1.5 border border-gray-200 text-gray-500 text-xs font-semibold rounded-lg hover:bg-gray-50 transition-colors">
-                  Hủy
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-      )}
 
       <MatchPredictionsModal
         match={match}

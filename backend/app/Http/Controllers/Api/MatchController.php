@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Prediction;
 use App\Models\WorldCupMatch;
-use App\Services\MatchSettlementService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -59,30 +58,4 @@ class MatchController extends Controller
         return response()->json($match);
     }
 
-    public function updateResult(Request $request, WorldCupMatch $match, MatchSettlementService $settlement): JsonResponse
-    {
-        if (!auth()->user()->is_admin) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $validated = $request->validate([
-            'home_score' => 'required|integer|min:0',
-            'away_score' => 'required|integer|min:0',
-        ]);
-
-        // Re-entering a result: undo the previous payout first.
-        if ($match->settled) {
-            $settlement->reverse($match);
-        }
-
-        $match->home_score = $validated['home_score'];
-        $match->away_score = $validated['away_score'];
-        $match->status = 'finished';
-        $match->result = $match->computeResult();
-        $match->save();
-
-        $settlement->settle($match);
-
-        return response()->json($match->fresh()->load(['homeTeam', 'awayTeam']));
-    }
 }

@@ -2,6 +2,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  avatar_url?: string | null;
   is_admin?: boolean;
   total_points: number;
   correct_predictions: number;
@@ -69,7 +70,7 @@ export interface Prediction {
 
 export interface MatchPredictionViewer {
   id: number;
-  user: Pick<User, 'id' | 'name'>;
+  user: Pick<User, 'id' | 'name' | 'avatar_url'>;
   predicted_home_score: number;
   predicted_away_score: number;
   is_correct: boolean | null;
@@ -114,6 +115,14 @@ export interface LeaderboardEntry extends User {
 export interface AuthResponse {
   user: User;
   token: string;
+}
+
+export interface DataSyncResponse {
+  message: string;
+  data: {
+    matches: string;
+    odds: string;
+  };
 }
 
 export interface PaginatedResponse<T> {

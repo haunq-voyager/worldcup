@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import { predictionsApi } from '@/lib/api';
 import type { MatchPredictionViewer, MatchPredictionsResponse, WorldCupMatch } from '@/types';
+import UserAvatar from '@/components/UserAvatar';
 
 interface MatchPredictionsModalProps {
   match: WorldCupMatch;
@@ -129,9 +130,12 @@ export default function MatchPredictionsModal({ match, open, onClose }: MatchPre
             <div className="space-y-2">
               {predictions.map((prediction) => (
                 <div key={prediction.id} className="flex items-center gap-3 rounded-xl border border-gray-100 px-3 py-2.5 transition-colors hover:bg-gray-50">
-                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 text-sm font-black text-blue-700">
-                    {prediction.user.name.charAt(0).toUpperCase()}
-                  </div>
+                  <UserAvatar
+                    name={prediction.user.name}
+                    avatarUrl={prediction.user.avatar_url}
+                    className="h-9 w-9 text-sm"
+                    fallbackClassName="bg-blue-100 text-blue-700"
+                  />
                   <p className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-800">{prediction.user.name}</p>
                   <span className="rounded-lg bg-slate-100 px-3 py-1 text-sm font-black tabular-nums text-slate-700">
                     {prediction.predicted_home_score} - {prediction.predicted_away_score}

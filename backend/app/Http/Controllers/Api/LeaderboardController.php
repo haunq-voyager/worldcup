@@ -30,7 +30,7 @@ class LeaderboardController extends Controller
 
     private function overall(Request $request, int $perPage): JsonResponse
     {
-        $leaders = User::select(['id', 'name', 'email', 'total_points', 'correct_predictions', 'total_predictions'])
+        $leaders = User::select(['id', 'name', 'email', 'avatar_path', 'total_points', 'correct_predictions', 'total_predictions'])
             ->orderByDesc('total_points')
             ->orderByDesc('correct_predictions')
             ->paginate($perPage);
@@ -75,6 +75,7 @@ class LeaderboardController extends Controller
                 'users.id',
                 'users.name',
                 'users.email',
+                'users.avatar_path',
                 DB::raw('rp.round_points as total_points'),
                 DB::raw('rp.round_correct as correct_predictions'),
                 DB::raw('rp.round_total as total_predictions'),

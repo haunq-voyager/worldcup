@@ -1,98 +1,130 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
+import Script from 'next/script';
 import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
+type GoogleCredentialResponse = { credential?: string };
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (options: {
+            client_id: string;
+            callback: (response: GoogleCredentialResponse) => void;
+            hd?: string;
+          }) => void;
+          renderButton: (
+            element: HTMLElement,
+            options: Record<string, string | number>,
+          ) => void;
+        };
+      };
+    };
+  }
+}
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '';
+
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { googleLogin } = useAuth();
   const router = useRouter();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const buttonRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (!form.email.toLowerCase().endsWith('@voyager-hcm.com')) {
-      setError('Tài khoản không thuộc quyền cho phép truy cập.');
+  const handleCredential = useCallback(async (response: GoogleCredentialResponse) => {
+    if (!response.credential) {
+      setError('Google không trả về thông tin đăng nhập.');
       return;
     }
 
     setLoading(true);
+    setError('');
     try {
-      await login(form.email, form.password);
+      await googleLogin(response.credential);
       router.push('/');
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
-      const errors = e?.response?.data?.errors;
-      if (errors) {
-        setError(Object.values(errors).flat().join(' '));
-      } else {
-        setError(e?.response?.data?.message || 'Đăng nhập thất bại.');
-      }
+      const requestError = err as { response?: { data?: { message?: string } } };
+      setError(requestError.response?.data?.message || 'Đăng nhập Google thất bại.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [googleLogin, router]);
+
+  const initializeGoogle = useCallback(() => {
+    if (
+      initializedRef.current
+      || !window.google
+      || !buttonRef.current
+      || !GOOGLE_CLIENT_ID
+    ) {
+      return;
+    }
+
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleCredential,
+      hd: 'voyager-hcm.com',
+    });
+    window.google.accounts.id.renderButton(buttonRef.current, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      shape: 'pill',
+      text: 'signin_with',
+      width: 320,
+      locale: 'vi',
+    });
+    initializedRef.current = true;
+  }, [handleCredential]);
+
+  useEffect(() => {
+    initializeGoogle();
+  }, [initializeGoogle]);
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center px-4">
+    <div className="flex min-h-[80vh] items-center justify-center px-4">
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onLoad={initializeGoogle}
+      />
+
       <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
+        <div className="mb-8 text-center">
           <span className="text-5xl">⚽</span>
-          <h1 className="text-2xl font-bold text-gray-900 mt-3">Đăng nhập</h1>
-          <p className="text-gray-500 mt-1">Tham gia dự đoán World Cup 2026</p>
+          <h1 className="mt-3 text-2xl font-bold text-gray-900">Đăng nhập World Cup 2026</h1>
+          <p className="mt-1 text-gray-500">Chỉ dành cho tài khoản Google Workspace Voyager</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+        <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+            <div className="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="you@voyager-hcm.com"
-                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+          {!GOOGLE_CLIENT_ID ? (
+            <div className="rounded-lg bg-amber-50 p-3 text-sm text-amber-700">
+              Chưa cấu hình Google Client ID.
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
-              <input
-                type="password"
-                required
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="••••••••"
-                className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+          ) : (
+            <div className={loading ? 'pointer-events-none opacity-50' : ''}>
+              <div ref={buttonRef} className="flex min-h-11 justify-center" />
             </div>
+          )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold py-2.5 rounded-lg transition-colors text-sm"
-            >
-              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
-            </button>
-          </form>
+          {loading && (
+            <p className="mt-4 text-center text-sm font-medium text-blue-600">Đang xác minh tài khoản...</p>
+          )}
 
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Chưa có tài khoản?{' '}
-            <Link href="/auth/register" className="text-blue-600 font-medium hover:underline">
-              Đăng ký ngay
-            </Link>
+          <p className="mt-6 text-center text-xs leading-relaxed text-gray-400">
+            Tài khoản mới sẽ được tạo tự động trong lần đăng nhập đầu tiên. Dữ liệu của tài khoản cũ được giữ nguyên theo email.
           </p>
         </div>
       </div>

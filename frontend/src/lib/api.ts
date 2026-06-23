@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type {
   AuthResponse,
+  DataSyncResponse,
   LeaderboardEntry,
   MatchPredictionsResponse,
   PaginatedResponse,
@@ -26,13 +27,19 @@ api.interceptors.request.use((config) => {
 });
 
 export const authApi = {
-  register: (data: { name: string; email: string; password: string; password_confirmation: string }) =>
-    api.post<AuthResponse>('/register', data).then((r) => r.data),
-  login: (data: { email: string; password: string }) =>
-    api.post<AuthResponse>('/login', data).then((r) => r.data),
+  googleLogin: (credential: string) =>
+    api.post<AuthResponse>('/auth/google', { credential }).then((r) => r.data),
   logout: () => api.post('/logout').then((r) => r.data),
   me: () => api.get('/me').then((r) => r.data),
   updateProfile: (name: string) => api.patch<User>('/me', { name }).then((r) => r.data),
+  updateAvatar: (avatar: File) => {
+    const formData = new FormData();
+    formData.append('avatar', avatar);
+
+    return api
+      .post<User>('/me/avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+      .then((r) => r.data);
+  },
 };
 
 export const teamsApi = {
@@ -45,8 +52,8 @@ export const matchesApi = {
   list: (params?: { status?: string; round?: string; group?: string }) =>
     api.get<WorldCupMatch[]>('/matches', { params }).then((r) => r.data),
   get: (id: number) => api.get<WorldCupMatch>(`/matches/${id}`).then((r) => r.data),
-  updateResult: (id: number, home_score: number, away_score: number) =>
-    api.post<WorldCupMatch>(`/matches/${id}/result`, { home_score, away_score }).then((r) => r.data),
+  syncData: () =>
+    api.post<DataSyncResponse>('/admin/sync-world-cup-data').then((r) => r.data),
 };
 
 export const predictionsApi = {

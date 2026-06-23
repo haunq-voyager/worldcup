@@ -8,6 +8,7 @@ import MatchCard from '@/components/MatchCard';
 import HeroBanner from '@/components/HeroBanner';
 import dynamic from 'next/dynamic';
 import type { WorldCupMatch } from '@/types';
+import UserAvatar from '@/components/UserAvatar';
 import { vnDateKey, vnTodayKey, vnShiftKey, vnWeekdayShort, vnKeyDayMonth, vnKeyFull } from '@/lib/datetime';
 
 const Fireworks = dynamic(() => import('@/components/Fireworks'), { ssr: false });
@@ -68,6 +69,7 @@ export default function HomePage() {
   const [showFireworks, setShowFireworks] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string>(TODAY_KEY);
   const [showOtherDates, setShowOtherDates] = useState(false);
+  const [syncing, setSyncing] = useState(false);
   const dateTabsRef = useRef<HTMLDivElement>(null);
 
   const loadMatches = useCallback(async () => {
@@ -132,6 +134,22 @@ export default function HomePage() {
     }
   };
 
+  const handleSync = async () => {
+    if (syncing) return;
+
+    setSyncing(true);
+    try {
+      const result = await matchesApi.syncData();
+      await Promise.all([loadMatches(), refreshUser()]);
+      showToast(result.message);
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      showToast(err?.response?.data?.message || 'Không thể đồng bộ dữ liệu.');
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   // All available date keys sorted
   const byDate = useMemo(() => groupByDate(matches), [matches]);
   const allDateKeys = useMemo(() => Array.from(byDate.keys()).sort(), [byDate]);
@@ -165,14 +183,28 @@ export default function HomePage() {
           <div className="bg-gradient-to-r from-blue-700 to-blue-900 rounded-2xl p-4 mb-6 text-white shadow-lg animate-slide-up">
             <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-lg font-black">
-                  {user.name?.charAt(0).toUpperCase()}
-                </div>
+                <UserAvatar
+                  name={user.name}
+                  avatarUrl={user.avatar_url}
+                  className="h-10 w-10 text-lg"
+                  fallbackClassName="bg-white/20 text-white"
+                />
                 <div>
                   <p className="font-bold leading-tight">{user.name}</p>
                   <p className="text-blue-200 text-xs">{user.email}</p>
                 </div>
               </div>
+              {user.is_admin && (
+                <button
+                  type="button"
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="ml-auto sm:ml-0 inline-flex items-center gap-2 rounded-xl bg-white/15 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/25 disabled:cursor-wait disabled:opacity-60"
+                >
+                  <span className={syncing ? 'animate-spin' : ''}>↻</span>
+                  {syncing ? 'Đang cập nhật...' : 'Cập nhật lịch, tỷ số & odds'}
+                </button>
+              )}
               <div className="flex gap-6 ml-auto flex-wrap">
                 <div className="text-center">
                   <p className="text-2xl font-black">{user.total_points}</p>
@@ -359,10 +391,6 @@ export default function HomePage() {
                 onPredict={handlePredict}
                 onCancelPredict={handleCancelPredict}
                 isAuthenticated={!!user}
-                isAdmin={!!user?.is_admin}
-                onResultUpdated={(updated) =>
-                  setMatches((prev) => prev.map((m) => m.id === updated.id ? updated : m))
-                }
               />
             ))}
           </div>

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
+import UserAvatar from '@/components/UserAvatar';
 
 type BallPhase = 'idle' | 'shoot' | 'goal' | 'return';
 
@@ -26,7 +27,7 @@ const SPARKS = [
 ];
 
 export default function Navbar() {
-  const { user, logout, updateProfile, loading } = useAuth();
+  const { user, logout, updateProfile, updateAvatar, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -35,6 +36,11 @@ export default function Navbar() {
   const [newName, setNewName] = useState('');
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [avatarError, setAvatarError] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // ── Ball animation state machine ──────────────────────────────────────────
@@ -68,6 +74,10 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  useEffect(() => () => {
+    if (avatarPreview) URL.revokeObjectURL(avatarPreview);
+  }, [avatarPreview]);
+
   const handleLogout = async () => {
     setDropdownOpen(false);
     await logout();
@@ -93,6 +103,63 @@ export default function Navbar() {
       setSaveError('Không thể cập nhật tên. Vui lòng thử lại.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const openAvatarModal = () => {
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    setAvatarError('');
+    setDropdownOpen(false);
+    setMenuOpen(false);
+    setAvatarModalOpen(true);
+  };
+
+  const closeAvatarModal = () => {
+    if (avatarSaving) return;
+    setAvatarModalOpen(false);
+    setAvatarFile(null);
+    setAvatarPreview(null);
+    setAvatarError('');
+  };
+
+  const handleAvatarFile = (file?: File) => {
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setAvatarError('Chỉ hỗ trợ ảnh JPEG, PNG hoặc WebP.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setAvatarError('Ảnh đại diện không được lớn hơn 2MB.');
+      return;
+    }
+
+    setAvatarError('');
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
+  const handleSaveAvatar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!avatarFile) return;
+
+    setAvatarSaving(true);
+    setAvatarError('');
+    try {
+      await updateAvatar(avatarFile);
+      setAvatarModalOpen(false);
+      setAvatarFile(null);
+      setAvatarPreview(null);
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { message?: string; errors?: { avatar?: string[] } } } };
+      setAvatarError(
+        error.response?.data?.errors?.avatar?.[0]
+          || error.response?.data?.message
+          || 'Không thể cập nhật ảnh đại diện.',
+      );
+    } finally {
+      setAvatarSaving(false);
     }
   };
 
@@ -221,9 +288,12 @@ export default function Navbar() {
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
                   >
                     {/* Avatar */}
-                    <div className="w-8 h-8 rounded-full bg-yellow-400 flex items-center justify-center text-blue-900 font-bold text-sm flex-shrink-0">
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
+                    <UserAvatar
+                      name={user.name}
+                      avatarUrl={user.avatar_url}
+                      className="h-8 w-8 text-sm"
+                      fallbackClassName="bg-yellow-400 text-blue-900"
+                    />
                     <div className="text-left">
                       <p className="text-white text-sm font-medium leading-tight">{user.name}</p>
                       <p className="text-yellow-300 text-xs font-semibold">{user.total_points} vcoins</p>
@@ -240,6 +310,15 @@ export default function Navbar() {
                         <p className="text-sm font-semibold text-gray-900 truncate">{user.name}</p>
                         <p className="text-xs text-gray-400 truncate">{user.email}</p>
                       </div>
+                      <button
+                        onClick={openAvatarModal}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Đổi ảnh đại diện
+                      </button>
                       <button
                         onClick={openEditModal}
                         className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -262,14 +341,9 @@ export default function Navbar() {
                   )}
                 </div>
               ) : (
-                <>
-                  <Link href="/auth/login" className="px-4 py-1.5 text-white text-sm font-medium hover:text-blue-200 transition-colors">
-                    Đăng nhập
-                  </Link>
-                  <Link href="/auth/register" className="px-4 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-blue-900 text-sm font-bold rounded-md transition-colors">
-                    Đăng ký
-                  </Link>
-                </>
+                <Link href="/auth/login" className="px-4 py-1.5 bg-yellow-400 hover:bg-yellow-300 text-blue-900 text-sm font-bold rounded-md transition-colors">
+                  Đăng nhập Google
+                </Link>
               )}
             </div>
 
@@ -305,10 +379,24 @@ export default function Navbar() {
               <div className="pt-2 border-t border-white/10 space-y-1">
                 {user ? (
                   <>
-                    <div className="px-4 py-2">
-                      <p className="text-white text-sm font-semibold">{user.name}</p>
-                      <p className="text-blue-200 text-xs">{user.email} · {user.total_points} vcoins</p>
+                    <div className="flex items-center gap-3 px-4 py-2">
+                      <UserAvatar
+                        name={user.name}
+                        avatarUrl={user.avatar_url}
+                        className="h-9 w-9 text-sm"
+                        fallbackClassName="bg-white/20 text-white"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-white text-sm font-semibold truncate">{user.name}</p>
+                        <p className="text-blue-200 text-xs truncate">{user.email} · {user.total_points} vcoins</p>
+                      </div>
                     </div>
+                    <button
+                      onClick={openAvatarModal}
+                      className="w-full text-left px-4 py-2 text-blue-100 text-sm hover:text-white"
+                    >
+                      Đổi ảnh đại diện
+                    </button>
                     <button
                       onClick={() => { setMenuOpen(false); openEditModal(); }}
                       className="w-full text-left px-4 py-2 text-blue-100 text-sm hover:text-white"
@@ -320,9 +408,8 @@ export default function Navbar() {
                     </button>
                   </>
                 ) : (
-                  <div className="flex gap-3 px-4">
-                    <Link href="/auth/login" className="text-blue-100 text-sm" onClick={() => setMenuOpen(false)}>Đăng nhập</Link>
-                    <Link href="/auth/register" className="text-yellow-400 text-sm font-bold" onClick={() => setMenuOpen(false)}>Đăng ký</Link>
+                  <div className="px-4">
+                    <Link href="/auth/login" className="text-yellow-400 text-sm font-bold" onClick={() => setMenuOpen(false)}>Đăng nhập Google</Link>
                   </div>
                 )}
               </div>
@@ -373,6 +460,63 @@ export default function Navbar() {
                   className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-xl text-sm font-semibold transition-colors"
                 >
                   {saving ? 'Đang lưu...' : 'Lưu'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit avatar modal */}
+      {avatarModalOpen && user && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeAvatarModal} />
+
+          <div className="relative w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl">
+            <h2 className="mb-1 text-lg font-bold text-gray-900">Đổi ảnh đại diện</h2>
+            <p className="mb-5 text-sm text-gray-400">JPEG, PNG hoặc WebP · tối đa 2MB</p>
+
+            <form onSubmit={handleSaveAvatar} className="space-y-5">
+              <div className="flex justify-center">
+                <UserAvatar
+                  name={user.name}
+                  avatarUrl={avatarPreview || user.avatar_url}
+                  className="h-28 w-28 border-4 border-blue-100 text-3xl shadow-sm"
+                  fallbackClassName="bg-blue-600 text-white"
+                />
+              </div>
+
+              <label className="block cursor-pointer rounded-xl border-2 border-dashed border-gray-200 px-4 py-4 text-center text-sm font-semibold text-blue-600 transition hover:border-blue-300 hover:bg-blue-50">
+                {avatarFile ? avatarFile.name : 'Chọn ảnh từ thiết bị'}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="sr-only"
+                  onChange={(event) => handleAvatarFile(event.target.files?.[0])}
+                />
+              </label>
+
+              {avatarError && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-sm text-red-600">
+                  {avatarError}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={closeAvatarModal}
+                  disabled={avatarSaving}
+                  className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="submit"
+                  disabled={avatarSaving || !avatarFile}
+                  className="flex-1 rounded-xl bg-blue-600 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:bg-blue-300"
+                >
+                  {avatarSaving ? 'Đang tải lên...' : 'Lưu ảnh'}
                 </button>
               </div>
             </form>

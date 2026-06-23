@@ -5,6 +5,7 @@ import { leaderboardApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import type { LeaderboardEntry } from '@/types';
 import clsx from 'clsx';
+import UserAvatar from '@/components/UserAvatar';
 
 const RANK_ICONS: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
@@ -64,9 +65,12 @@ export default function LeaderboardSidebar({ onClose }: { onClose?: () => void }
           <p className="text-[10px] text-blue-200 font-medium">Vcoins của bạn</p>
           <div className="flex items-center justify-between mt-0.5">
             <div className="flex items-center gap-1.5">
-              <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-black">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
+              <UserAvatar
+                name={user.name}
+                avatarUrl={user.avatar_url}
+                className="h-6 w-6 text-xs"
+                fallbackClassName="bg-white/20 text-white"
+              />
               <span className="text-xs font-semibold truncate max-w-[90px]">{user.name}</span>
             </div>
             <span className="text-sm font-black">{user.total_points} vcoins</span>
@@ -104,17 +108,19 @@ export default function LeaderboardSidebar({ onClose }: { onClose?: () => void }
                 </div>
 
                 {/* Avatar */}
-                <div className={clsx(
-                  'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black flex-shrink-0',
+                <UserAvatar
+                  name={entry.name}
+                  avatarUrl={entry.avatar_url}
+                  className="h-6 w-6 text-[10px]"
+                  fallbackClassName={clsx(
                   isMe
                     ? 'bg-blue-600 text-white'
                     : entry.rank === 1 ? 'bg-yellow-400 text-yellow-900'
                     : entry.rank === 2 ? 'bg-gray-300 text-gray-700'
                     : entry.rank === 3 ? 'bg-amber-500 text-white'
                     : 'bg-gray-100 text-gray-600'
-                )}>
-                  {entry.name.charAt(0).toUpperCase()}
-                </div>
+                  )}
+                />
 
                 {/* Name */}
                 <div className="flex-1 min-w-0">

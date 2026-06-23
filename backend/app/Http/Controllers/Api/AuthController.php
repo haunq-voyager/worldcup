@@ -2,62 +2,30 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Actions\LoginWithGoogleAction;
+use App\Actions\UpdateUserAvatarAction;
+use App\Exceptions\InvalidGoogleCredentialException;
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Http\Requests\GoogleLoginRequest;
+use App\Http\Requests\UpdateAvatarRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
-    public function register(Request $request): JsonResponse
+    public function googleLogin(GoogleLoginRequest $request, LoginWithGoogleAction $action): JsonResponse
     {
-        $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|ends_with:@voyager-hcm.com|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-        ], [
-            'email.ends_with' => 'Tài khoản không thuộc quyền cho phép truy cập.',
-        ]);
-
-        $user = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
-            'password' => $validated['password'],
-        ]);
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'user'  => $user,
-            'token' => $token,
-        ], 201);
-    }
-
-    public function login(Request $request): JsonResponse
-    {
-        $request->validate([
-            'email'    => 'required|email|ends_with:@voyager-hcm.com',
-            'password' => 'required|string',
-        ], [
-            'email.ends_with' => 'Tài khoản không thuộc quyền cho phép truy cập.',
-        ]);
-
-        $user = User::where('email', $request->email)->first();
-
-        if (! $user || ! Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => ['Email hoặc mật khẩu không đúng.'],
-            ]);
+        try {
+            $auth = $action->execute($request->string('credential')->toString());
+        } catch (InvalidGoogleCredentialException $exception) {
+            return response()->json(
+                ['message' => $exception->getMessage()],
+                Response::HTTP_UNPROCESSABLE_ENTITY,
+            );
         }
 
-        $token = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'user'  => $user,
-            'token' => $token,
-        ]);
+        return response()->json($auth, Response::HTTP_OK);
     }
 
     public function logout(Request $request): JsonResponse
@@ -81,5 +49,12 @@ class AuthController extends Controller
         $request->user()->update(['name' => $validated['name']]);
 
         return response()->json($request->user()->fresh());
+    }
+
+    public function updateAvatar(UpdateAvatarRequest $request, UpdateUserAvatarAction $action): JsonResponse
+    {
+        $user = $action->execute($request->user(), $request->file('avatar'));
+
+        return response()->json($user);
     }
 }

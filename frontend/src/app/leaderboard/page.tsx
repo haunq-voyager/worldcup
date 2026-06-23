@@ -5,6 +5,7 @@ import { leaderboardApi } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import type { LeaderboardEntry } from '@/types';
 import clsx from 'clsx';
+import UserAvatar from '@/components/UserAvatar';
 
 const RANK_STYLES: Record<number, string> = {
   1: 'bg-yellow-400 text-yellow-900',
@@ -151,9 +152,12 @@ export default function LeaderboardPage() {
 
                   {/* Name */}
                   <div className="col-span-4 flex items-center gap-2 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-700 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                      {entry.name.charAt(0).toUpperCase()}
-                    </div>
+                    <UserAvatar
+                      name={entry.name}
+                      avatarUrl={entry.avatar_url}
+                      className="h-8 w-8 text-sm"
+                      fallbackClassName="bg-gradient-to-br from-blue-400 to-blue-700 text-white"
+                    />
                     <div className="min-w-0">
                       <p className={clsx('text-sm font-semibold truncate', isCurrentUser ? 'text-blue-700' : 'text-gray-800')}>
                         {entry.name}
