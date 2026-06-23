@@ -129,14 +129,21 @@ export default function MatchPredictionsModal({ match, open, onClose }: MatchPre
           ) : (
             <div className="space-y-2">
               {predictions.map((prediction) => (
-                <div key={prediction.id} className="flex items-center gap-3 rounded-xl border border-gray-100 px-3 py-2.5 transition-colors hover:bg-gray-50">
+                <div key={prediction.id} className="flex items-start gap-3 rounded-xl border border-gray-100 px-3 py-2.5 transition-colors hover:bg-gray-50">
                   <UserAvatar
                     name={prediction.user.name}
                     avatarUrl={prediction.user.avatar_url}
                     className="h-9 w-9 text-sm"
                     fallbackClassName="bg-blue-100 text-blue-700"
                   />
-                  <p className="min-w-0 flex-1 truncate text-sm font-semibold text-gray-800">{prediction.user.name}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-gray-800">{prediction.user.name}</p>
+                    {prediction.trash_talk && (
+                      <p className="mt-1 break-words rounded-lg bg-amber-50 px-2 py-1.5 text-xs italic leading-relaxed text-amber-700">
+                        “{prediction.trash_talk}”
+                      </p>
+                    )}
+                  </div>
                   <span className="rounded-lg bg-slate-100 px-3 py-1 text-sm font-black tabular-nums text-slate-700">
                     {prediction.predicted_home_score} - {prediction.predicted_away_score}
                   </span>

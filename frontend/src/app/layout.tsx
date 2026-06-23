@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'World Cup 2026 - Dự đoán kết quả',
   description: 'Tham gia dự đoán kết quả các trận đấu World Cup 2026 và tranh tài trên bảng xếp hạng',
+  icons: {
+    icon: '/favicon.png',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

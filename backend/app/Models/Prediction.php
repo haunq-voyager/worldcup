@@ -13,6 +13,7 @@ class Prediction extends Model
         'prediction',
         'predicted_home_score',
         'predicted_away_score',
+        'trash_talk',
         'stake',
         'is_correct',
         'points_earned',

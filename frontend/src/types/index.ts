@@ -61,6 +61,7 @@ export interface Prediction {
   match_id: number;
   predicted_home_score: number;
   predicted_away_score: number;
+  trash_talk: string | null;
   stake: number;
   is_correct: boolean | null;
   points_earned: number;
@@ -73,6 +74,7 @@ export interface MatchPredictionViewer {
   user: Pick<User, 'id' | 'name' | 'avatar_url'>;
   predicted_home_score: number;
   predicted_away_score: number;
+  trash_talk: string | null;
   is_correct: boolean | null;
   points_earned: number;
   created_at: string;

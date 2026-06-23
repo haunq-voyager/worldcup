@@ -8,7 +8,7 @@ import clsx from 'clsx';
 
 interface MatchCardProps {
   match: WorldCupMatch;
-  onPredict?: (matchId: number, homeScore: number, awayScore: number) => Promise<void>;
+  onPredict?: (matchId: number, homeScore: number, awayScore: number, trashTalk: string) => Promise<void>;
   onCancelPredict?: (predictionId: number, matchId: number) => Promise<void>;
   isAuthenticated?: boolean;
 }
@@ -36,6 +36,7 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
 
   const [homePred, setHomePred] = useState(userPrediction ? String(userPrediction.predicted_home_score) : '');
   const [awayPred, setAwayPred] = useState(userPrediction ? String(userPrediction.predicted_away_score) : '');
+  const [trashTalk, setTrashTalk] = useState(userPrediction?.trash_talk ?? '');
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [predictionsOpen, setPredictionsOpen] = useState(false);
@@ -51,7 +52,7 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
     if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
     setLoading(true);
     try {
-      await onPredict(match.id, h, a);
+      await onPredict(match.id, h, a, trashTalk);
       setEditing(false);
     } finally {
       setLoading(false);
@@ -65,6 +66,7 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
       await onCancelPredict(userPrediction.id, match.id);
       setHomePred('');
       setAwayPred('');
+      setTrashTalk('');
     } finally {
       setLoading(false);
     }
@@ -232,13 +234,24 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
           <div className="space-y-2">
             <p className="text-xs text-gray-400 text-center">Đoán tỉ số chính xác</p>
             {scoreInputs}
+            <div>
+              <textarea
+                value={trashTalk}
+                onChange={(event) => setTrashTalk(event.target.value)}
+                maxLength={280}
+                rows={2}
+                placeholder="Trash talk nhẹ một câu... (không bắt buộc)"
+                className="w-full resize-none rounded-xl border border-gray-200 px-3 py-2 text-xs text-gray-700 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <p className="mt-0.5 text-right text-[10px] text-gray-300">{trashTalk.length}/280</p>
+            </div>
             <div className="flex gap-2">
               <button onClick={handleConfirm} disabled={loading || homePred === '' || awayPred === ''}
                 className="flex-1 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 text-white text-xs font-bold shadow-md transition-all">
                 {loading ? '⏳...' : `Cược ${STAKE} vcoins`}
               </button>
               {userPrediction && (
-                <button onClick={() => { setEditing(false); setHomePred(String(userPrediction.predicted_home_score)); setAwayPred(String(userPrediction.predicted_away_score)); }} disabled={loading}
+                <button onClick={() => { setEditing(false); setHomePred(String(userPrediction.predicted_home_score)); setAwayPred(String(userPrediction.predicted_away_score)); setTrashTalk(userPrediction.trash_talk ?? ''); }} disabled={loading}
                   className="flex-1 py-2 rounded-xl border-2 border-gray-200 text-gray-500 hover:bg-gray-50 text-xs font-semibold transition-all">
                   Hủy sửa
                 </button>
@@ -255,6 +268,9 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
                 {userPrediction.predicted_home_score} - {userPrediction.predicted_away_score}
               </span>
             </div>
+            {userPrediction.trash_talk && (
+              <p className="rounded-lg bg-amber-50 px-2 py-1.5 text-center text-xs italic text-amber-700">“{userPrediction.trash_talk}”</p>
+            )}
             <div className="flex gap-2">
               <button onClick={() => setEditing(true)} disabled={loading}
                 className="flex-1 py-1.5 rounded-lg border-2 border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 text-xs font-semibold transition-all">

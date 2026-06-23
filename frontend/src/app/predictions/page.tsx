@@ -205,6 +205,9 @@ export default function PredictionsPage() {
                     )}
                   </div>
                 </div>
+                {prediction.trash_talk && (
+                  <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm italic text-amber-700">“{prediction.trash_talk}”</p>
+                )}
               </div>
             );
           })}

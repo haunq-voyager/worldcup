@@ -57,9 +57,9 @@ export const matchesApi = {
 };
 
 export const predictionsApi = {
-  create: (match_id: number, predicted_home_score: number, predicted_away_score: number) =>
+  create: (match_id: number, predicted_home_score: number, predicted_away_score: number, trash_talk?: string | null) =>
     api
-      .post<Prediction>('/predictions', { match_id, predicted_home_score, predicted_away_score })
+      .post<Prediction>('/predictions', { match_id, predicted_home_score, predicted_away_score, trash_talk })
       .then((r) => r.data),
   myPredictions: () => api.get<Prediction[]>('/predictions/my').then((r) => r.data),
   forMatch: (matchId: number, page = 1, perPage = 50) =>

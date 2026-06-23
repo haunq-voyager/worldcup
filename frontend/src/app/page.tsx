@@ -102,11 +102,11 @@ export default function HomePage() {
     setTimeout(() => setToast(''), 3000);
   };
 
-  const handlePredict = async (matchId: number, homeScore: number, awayScore: number) => {
+  const handlePredict = async (matchId: number, homeScore: number, awayScore: number, trashTalk: string) => {
     if (predicting) return;
     setPredicting(matchId);
     try {
-      const saved: Prediction = await predictionsApi.create(matchId, homeScore, awayScore);
+      const saved: Prediction = await predictionsApi.create(matchId, homeScore, awayScore, trashTalk.trim() || null);
       setMatches((prev) =>
         prev.map((m) => m.id === matchId ? { ...m, user_prediction: saved } : m)
       );

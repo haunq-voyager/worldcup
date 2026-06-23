@@ -180,7 +180,9 @@ Endpoint có thể trả `401` khi chưa đăng nhập, `403` khi không phải 
 
 ## API dự đoán theo trận
 
-`GET /api/matches/{match}/predictions?page=1&per_page=50` là API công khai, trả về tên người dự đoán, tỉ số đã chọn, trạng thái đúng/sai và điểm nhận được. Email người dùng không được trả về. `per_page` nhận giá trị từ 1 đến 100.
+`POST /api/predictions` yêu cầu đăng nhập và nhận `match_id`, `predicted_home_score`, `predicted_away_score`, cùng `trash_talk` tùy chọn (chuỗi tối đa 280 ký tự). Gửi lại dự đoán trước giờ bóng lăn sẽ cập nhật cả tỉ số và trash talk.
+
+`GET /api/matches/{match}/predictions?page=1&per_page=50` là API công khai, trả về tên người dự đoán, tỉ số đã chọn, trash talk, trạng thái đúng/sai và điểm nhận được. Email người dùng không được trả về. `per_page` nhận giá trị từ 1 đến 100.
 
 Phản hồi thành công (`200 OK`):
 
@@ -196,6 +198,7 @@ Phản hồi thành công (`200 OK`):
       },
       "predicted_home_score": 2,
       "predicted_away_score": 1,
+      "trash_talk": "Kèo này Argentina thắng nhẹ!",
       "is_correct": true,
       "points_earned": 20,
       "created_at": "2026-06-22T07:00:00.000000Z"

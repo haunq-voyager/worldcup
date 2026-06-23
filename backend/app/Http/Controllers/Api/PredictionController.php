@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StorePredictionRequest;
 use App\Models\Prediction;
 use App\Models\WorldCupMatch;
 use App\Services\MatchSettlementService;
@@ -25,6 +26,7 @@ class PredictionController extends Controller
                 'match_id',
                 'predicted_home_score',
                 'predicted_away_score',
+                'trash_talk',
                 'is_correct',
                 'points_earned',
                 'created_at',
@@ -53,6 +55,7 @@ class PredictionController extends Controller
                 ],
                 'predicted_home_score'     => $prediction->predicted_home_score,
                 'predicted_away_score'     => $prediction->predicted_away_score,
+                'trash_talk'                => $prediction->trash_talk,
                 'is_correct'               => $prediction->is_correct,
                 'points_earned'            => $prediction->points_earned,
                 'created_at'               => $prediction->created_at,
@@ -72,13 +75,9 @@ class PredictionController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StorePredictionRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'match_id'             => 'required|exists:world_cup_matches,id',
-            'predicted_home_score' => 'required|integer|min:0|max:99',
-            'predicted_away_score' => 'required|integer|min:0|max:99',
-        ]);
+        $validated = $request->validated();
 
         $match = WorldCupMatch::findOrFail($validated['match_id']);
 
@@ -89,16 +88,22 @@ class PredictionController extends Controller
             return response()->json(['message' => 'Thời gian dự đoán đã hết.'], 422);
         }
 
+        $values = [
+            'predicted_home_score' => $validated['predicted_home_score'],
+            'predicted_away_score' => $validated['predicted_away_score'],
+            'stake'                => MatchSettlementService::STAKE,
+        ];
+
+        if (array_key_exists('trash_talk', $validated)) {
+            $values['trash_talk'] = $validated['trash_talk'];
+        }
+
         $prediction = Prediction::updateOrCreate(
             [
                 'user_id'  => $request->user()->id,
                 'match_id' => $match->id,
             ],
-            [
-                'predicted_home_score' => $validated['predicted_home_score'],
-                'predicted_away_score' => $validated['predicted_away_score'],
-                'stake'                => MatchSettlementService::STAKE,
-            ]
+            $values,
         );
 
         return response()->json($prediction->load('match.homeTeam', 'match.awayTeam'), 201);

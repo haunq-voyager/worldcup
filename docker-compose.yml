@@ -57,11 +57,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: https://worldcup.voyager-hcm.com/api
+        NEXT_PUBLIC_API_URL: /api
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: "533296227630-v2uivkargthbi3bdrs3h2rcnl7ktbgsf.apps.googleusercontent.com"
     container_name: worldcup_frontend
     environment:
-      NEXT_PUBLIC_API_URL: https://worldcup.voyager-hcm.com/api
+      NEXT_PUBLIC_API_URL: /api
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: "533296227630-v2uivkargthbi3bdrs3h2rcnl7ktbgsf.apps.googleusercontent.com"
     depends_on:
       - backend
