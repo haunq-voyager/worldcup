@@ -178,6 +178,15 @@ export default function HomePage() {
 
       <div className="max-w-7xl mx-auto px-4 py-6">
 
+        {/* Prediction deadline notice */}
+        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 shadow-sm">
+          <span className="text-lg" aria-hidden="true">⚠️</span>
+          <p className="text-sm leading-6">
+            <span className="font-bold">Lưu ý:</span> Chỉ nhận dự đoán trước{' '}
+            <span className="font-bold">00:00 (12 giờ đêm)</span>. Vui lòng hoàn tất dự đoán sớm.
+          </p>
+        </div>
+
         {/* User stats bar */}
         {user && (
           <div className="bg-gradient-to-r from-blue-700 to-blue-900 rounded-2xl p-4 mb-6 text-white shadow-lg animate-slide-up">
