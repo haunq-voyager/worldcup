@@ -3,6 +3,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: worldcup_db
+    restart: always
     environment:
       POSTGRES_DB: worldcup
       POSTGRES_USER: postgres
@@ -24,6 +25,7 @@ services:
       dockerfile: Dockerfile
     image: worldcup-backend:latest
     container_name: worldcup_backend
+    restart: always
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
@@ -60,6 +62,7 @@ services:
         NEXT_PUBLIC_API_URL: /api
         NEXT_PUBLIC_GOOGLE_CLIENT_ID: "533296227630-v2uivkargthbi3bdrs3h2rcnl7ktbgsf.apps.googleusercontent.com"
     container_name: worldcup_frontend
+    restart: always
     environment:
       NEXT_PUBLIC_API_URL: /api
       NEXT_PUBLIC_GOOGLE_CLIENT_ID: "533296227630-v2uivkargthbi3bdrs3h2rcnl7ktbgsf.apps.googleusercontent.com"
@@ -70,6 +73,7 @@ services:
   nginx:
     image: nginx:alpine
     container_name: worldcup_nginx
+    restart: always
     ports:
       - "3000:80"
     volumes:

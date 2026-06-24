@@ -1,0 +1,9 @@
+services:
+  frontend:
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:3000/api
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: "533296227630-v2uivkargthbi3bdrs3h2rcnl7ktbgsf.apps.googleusercontent.com"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3000/api
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: "533296227630-v2uivkargthbi3bdrs3h2rcnl7ktbgsf.apps.googleusercontent.com"
