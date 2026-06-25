@@ -32,8 +32,13 @@ class LeaderboardController extends Controller
     private function overall(Request $request, int $perPage): JsonResponse
     {
         $leaders = User::select(['id', 'name', 'email', 'avatar_path', 'total_points', 'correct_predictions', 'total_predictions'])
-            ->withCount(['predictions', 'specialPredictions'])
-            ->orderByRaw('CASE WHEN predictions_count > 0 OR special_predictions_count > 0 THEN 1 ELSE 0 END DESC')
+            ->orderByRaw(
+                'CASE WHEN EXISTS (
+                    SELECT 1 FROM predictions WHERE predictions.user_id = users.id
+                ) OR EXISTS (
+                    SELECT 1 FROM special_predictions WHERE special_predictions.user_id = users.id
+                ) THEN 1 ELSE 0 END DESC'
+            )
             ->orderByDesc('total_points')
             ->orderByDesc('correct_predictions')
             ->orderBy('id')
@@ -45,8 +50,6 @@ class LeaderboardController extends Controller
             $user->accuracy = $user->total_predictions > 0
                 ? round(($user->correct_predictions / $user->total_predictions) * 100, 1)
                 : 0;
-            unset($user->predictions_count);
-            unset($user->special_predictions_count);
             return $user;
         });
 
