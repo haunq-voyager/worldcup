@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -31,8 +32,11 @@ class LeaderboardController extends Controller
     private function overall(Request $request, int $perPage): JsonResponse
     {
         $leaders = User::select(['id', 'name', 'email', 'avatar_path', 'total_points', 'correct_predictions', 'total_predictions'])
+            ->withCount(['predictions', 'specialPredictions'])
+            ->orderByRaw('CASE WHEN predictions_count > 0 OR special_predictions_count > 0 THEN 1 ELSE 0 END DESC')
             ->orderByDesc('total_points')
             ->orderByDesc('correct_predictions')
+            ->orderBy('id')
             ->paginate($perPage);
 
         $rank = ($leaders->currentPage() - 1) * $leaders->perPage() + 1;
@@ -41,12 +45,14 @@ class LeaderboardController extends Controller
             $user->accuracy = $user->total_predictions > 0
                 ? round(($user->correct_predictions / $user->total_predictions) * 100, 1)
                 : 0;
+            unset($user->predictions_count);
+            unset($user->special_predictions_count);
             return $user;
         });
 
         $currentUserRank = null;
         if ($request->user()) {
-            $currentUserRank = User::where('total_points', '>', $request->user()->total_points)->count() + 1;
+            $currentUserRank = $this->overallRankFor($request->user());
         }
 
         return response()->json([
@@ -121,5 +127,74 @@ class LeaderboardController extends Controller
             'data'              => $leaders,
             'current_user_rank' => $currentUserRank,
         ]);
+    }
+
+    private function overallRankFor(User $user): int
+    {
+        $hasPredictions = $user->predictions()->exists() || $user->specialPredictions()->exists();
+
+        $rankedBefore = User::query()
+            ->where('id', '!=', $user->id)
+            ->where(function ($query) use ($user, $hasPredictions) {
+                if (! $hasPredictions) {
+                    $query
+                        ->where(function (Builder $query) {
+                            $this->whereHasAnyPrediction($query);
+                        })
+                        ->orWhere(function ($query) use ($user) {
+                            $query
+                                ->where(function (Builder $query) {
+                                    $this->whereDoesntHaveAnyPrediction($query);
+                                })
+                                ->where(function ($query) use ($user) {
+                                    $this->applyOverallTieBreakers($query, $user);
+                                });
+                        });
+
+                    return;
+                }
+
+                $query
+                    ->where(function (Builder $query) {
+                        $this->whereHasAnyPrediction($query);
+                    })
+                    ->where(function ($query) use ($user) {
+                        $this->applyOverallTieBreakers($query, $user);
+                    });
+            })
+            ->count();
+
+        return $rankedBefore + 1;
+    }
+
+    private function whereHasAnyPrediction(Builder $query): void
+    {
+        $query
+            ->whereHas('predictions')
+            ->orWhereHas('specialPredictions');
+    }
+
+    private function whereDoesntHaveAnyPrediction(Builder $query): void
+    {
+        $query
+            ->whereDoesntHave('predictions')
+            ->whereDoesntHave('specialPredictions');
+    }
+
+    private function applyOverallTieBreakers(Builder $query, User $user): void
+    {
+        $query
+            ->where('total_points', '>', $user->total_points)
+            ->orWhere(function ($query) use ($user) {
+                $query
+                    ->where('total_points', $user->total_points)
+                    ->where('correct_predictions', '>', $user->correct_predictions);
+            })
+            ->orWhere(function ($query) use ($user) {
+                $query
+                    ->where('total_points', $user->total_points)
+                    ->where('correct_predictions', $user->correct_predictions)
+                    ->where('id', '<', $user->id);
+            });
     }
 }
