@@ -144,7 +144,7 @@ Backend xác minh chữ ký, audience, email verified và hosted domain `voyager
 
 ## API ảnh đại diện
 
-`POST /api/me/avatar` yêu cầu Bearer token và body `multipart/form-data` với trường `avatar`. Hỗ trợ JPEG, PNG, WebP; dung lượng tối đa 2MB và kích thước tối đa 2000x2000 pixel. Thành công trả về user đã cập nhật cùng trường `avatar_url` (`200 OK`); chưa đăng nhập trả `401`, dữ liệu ảnh không hợp lệ trả `422`, vượt 10 lần/phút trả `429`.
+`POST /api/me/avatar` yêu cầu Bearer token và body `multipart/form-data` với trường `avatar`. Hỗ trợ JPEG, PNG, WebP; dung lượng tối đa 2MB và kích thước tối đa 2000x2000 pixel. Thành công trả về user đã cập nhật cùng trường `avatar_url` (`200 OK`). `avatar_url` ưu tiên ảnh upload; nếu người dùng chưa upload avatar thì dùng ảnh đại diện Google; chưa đăng nhập trả `401`, dữ liệu ảnh không hợp lệ trả `422`, vượt 10 lần/phút trả `429`.
 
 Ví dụ phản hồi thành công:
 

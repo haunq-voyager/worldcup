@@ -31,7 +31,7 @@ class PredictionController extends Controller
                 'points_earned',
                 'created_at',
             ])
-            ->with('user:id,name,avatar_path')
+            ->with('user:id,name,avatar_path,google_avatar_url')
             ->orderBy('created_at')
             ->paginate(
                 perPage: $validated['per_page'] ?? 50,

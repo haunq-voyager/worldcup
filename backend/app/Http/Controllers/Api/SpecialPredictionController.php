@@ -27,7 +27,7 @@ class SpecialPredictionController extends Controller
         }
 
         return SpecialPrediction::where('type', $type)
-            ->with('user:id,name,email')
+            ->with('user:id,name,email,avatar_path,google_avatar_url')
             ->orderByDesc('created_at')
             ->get();
     }

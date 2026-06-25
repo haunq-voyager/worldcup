@@ -121,7 +121,7 @@ class TournamentPredictionController extends Controller
     // Public: leaderboard for tournament predictions
     public function leaderboard(): JsonResponse
     {
-        $data = TournamentPrediction::with(['user:id,name', 'team:id,name,flag_url'])
+        $data = TournamentPrediction::with(['user:id,name,avatar_path,google_avatar_url', 'team:id,name,flag_url'])
             ->where('is_correct', true)
             ->get()
             ->groupBy('user_id')

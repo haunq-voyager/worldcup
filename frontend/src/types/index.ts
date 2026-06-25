@@ -106,7 +106,7 @@ export interface SpecialPrediction {
   is_correct: boolean | null;
   points_earned: number;
   created_at: string;
-  user?: { id: number; name: string; email: string };
+  user?: Pick<User, 'id' | 'name' | 'email' | 'avatar_url'>;
 }
 
 export interface LeaderboardEntry extends User {

@@ -31,7 +31,7 @@ class LeaderboardController extends Controller
 
     private function overall(Request $request, int $perPage): JsonResponse
     {
-        $leaders = User::select(['id', 'name', 'email', 'avatar_path', 'total_points', 'correct_predictions', 'total_predictions'])
+        $leaders = User::select(['id', 'name', 'email', 'avatar_path', 'google_avatar_url', 'total_points', 'correct_predictions', 'total_predictions'])
             ->orderByRaw(
                 'CASE WHEN EXISTS (
                     SELECT 1 FROM predictions WHERE predictions.user_id = users.id
@@ -85,6 +85,7 @@ class LeaderboardController extends Controller
                 'users.name',
                 'users.email',
                 'users.avatar_path',
+                'users.google_avatar_url',
                 DB::raw('rp.round_points as total_points'),
                 DB::raw('rp.round_correct as correct_predictions'),
                 DB::raw('rp.round_total as total_predictions'),
