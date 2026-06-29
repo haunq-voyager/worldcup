@@ -68,7 +68,6 @@ export default function HomePage() {
   const [toast, setToast] = useState('');
   const [showFireworks, setShowFireworks] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string>(TODAY_KEY);
-  const [showOtherDates, setShowOtherDates] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const dateTabsRef = useRef<HTMLDivElement>(null);
 
@@ -153,8 +152,6 @@ export default function HomePage() {
   // All available date keys sorted
   const byDate = useMemo(() => groupByDate(matches), [matches]);
   const allDateKeys = useMemo(() => Array.from(byDate.keys()).sort(), [byDate]);
-  const nearbyDateKeys = useMemo(() => allDateKeys.filter((k) => NEARBY_KEYS.has(k)), [allDateKeys]);
-  const otherDateKeys = useMemo(() => allDateKeys.filter((k) => !NEARBY_KEYS.has(k)), [allDateKeys]);
 
   // If selected date has no matches, pick nearest available
   const effectiveDate = useMemo(() => {
@@ -168,7 +165,6 @@ export default function HomePage() {
 
   const selectDate = (key: string) => {
     setSelectedDate(key);
-    setShowOtherDates(false);
   };
 
   return (
@@ -241,13 +237,11 @@ export default function HomePage() {
         {/* ── Date tab bar ── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 mb-4">
           <div ref={dateTabsRef} className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-
-            {/* Nearby dates: yesterday / today / tomorrow */}
             {loading
               ? [0,1,2].map((i) => (
                   <div key={i} className="flex-shrink-0 w-16 h-12 rounded-xl bg-gray-100 animate-pulse" />
                 ))
-              : nearbyDateKeys.map((key) => {
+              : allDateKeys.map((key) => {
                   const { line1, line2, special } = dateTabLabel(key);
                   const active = effectiveDate === key;
                   const hasLive = byDate.get(key)?.some((m) => m.status === 'live');
@@ -272,44 +266,6 @@ export default function HomePage() {
                   );
                 })
             }
-
-            {/* Divider */}
-            {otherDateKeys.length > 0 && (
-              <div className="flex-shrink-0 self-stretch w-px bg-gray-200 mx-1" />
-            )}
-
-            {/* Other dates — shown when expanded */}
-            {!loading && otherDateKeys.map((key) => {
-              const { line1, line2 } = dateTabLabel(key);
-              const active = effectiveDate === key;
-              const visible = showOtherDates || active;
-              if (!visible) return null;
-              return (
-                <button
-                  key={key}
-                  onClick={() => selectDate(key)}
-                  className={`flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold transition-all min-w-[60px] ${
-                    active
-                      ? 'bg-gray-700 text-white shadow-md'
-                      : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
-                  }`}
-                >
-                  <span className="font-bold capitalize">{line1}</span>
-                  <span className={`mt-0.5 ${active ? 'opacity-80' : 'text-gray-400'}`}>{line2}</span>
-                </button>
-              );
-            })}
-
-            {/* Expand / collapse other dates */}
-            {!loading && otherDateKeys.length > 0 && (
-              <button
-                onClick={() => setShowOtherDates((v) => !v)}
-                className="flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl text-xs text-gray-400 hover:bg-gray-100 transition-all min-w-[56px] gap-0.5"
-              >
-                <span className="text-base">{showOtherDates ? '‹' : '›'}</span>
-                <span>{showOtherDates ? 'Thu gọn' : `+${otherDateKeys.length} ngày`}</span>
-              </button>
-            )}
           </div>
         </div>
 
