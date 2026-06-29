@@ -36,7 +36,7 @@ class DataSyncController extends Controller
         }
 
         return response()->json([
-            'message' => 'Cập nhật lịch thi đấu, tỷ số và odds thành công.',
+            'message' => 'Cập nhật tỷ số và odds thành công.',
             'data' => $result,
         ], Response::HTTP_OK);
     }

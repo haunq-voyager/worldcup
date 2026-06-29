@@ -122,7 +122,6 @@ export interface AuthResponse {
 export interface DataSyncResponse {
   message: string;
   data: {
-    matches: string;
     odds: string;
   };
 }

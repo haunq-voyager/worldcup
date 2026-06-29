@@ -384,11 +384,11 @@ export default function HomePage() {
         ) : displayedMatches.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <p className="text-4xl mb-3">📅</p>
-            <p className="text-lg font-semibold">Không có trận đấu</p>
+            <p className="text-lg font-semibold">Chưa có lịch thi đấu</p>
             <p className="text-sm mt-1">
               {byDate.size === 0
-                ? 'Chọn ngày khác hoặc thay đổi bộ lọc'
-                : 'Không có trận đấu vào ngày này'}
+                ? 'Chưa có lịch từ API hoặc bộ lọc không có dữ liệu'
+                : 'Chưa có lịch thi đấu vào ngày này'}
             </p>
           </div>
         ) : (

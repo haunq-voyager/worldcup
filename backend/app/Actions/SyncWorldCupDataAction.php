@@ -9,7 +9,7 @@ use RuntimeException;
 
 class SyncWorldCupDataAction
 {
-    /** @return array{matches: string, odds: string} */
+    /** @return array{odds: string} */
     public function execute(): array
     {
         $lock = Cache::lock('worldcup:data-sync', 120);
@@ -19,16 +19,12 @@ class SyncWorldCupDataAction
         }
 
         try {
-            $matchesOutput = $this->runCommand(
-                'worldcup:sync',
-                'Không thể cập nhật lịch thi đấu và tỷ số.',
-            );
             $oddsOutput = $this->runCommand(
                 'worldcup:sync-odds',
-                'Không thể cập nhật tỷ lệ cược.',
+                'Không thể cập nhật tỷ lệ cược và tỷ số.',
             );
 
-            return ['matches' => $matchesOutput, 'odds' => $oddsOutput];
+            return ['odds' => $oddsOutput];
         } finally {
             $lock->release();
         }

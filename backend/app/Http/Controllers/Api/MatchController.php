@@ -13,6 +13,13 @@ class MatchController extends Controller
     public function index(Request $request): JsonResponse
     {
         $query = WorldCupMatch::with(['homeTeam', 'awayTeam'])
+            ->where(function ($query) {
+                $query->where('round', 'group')
+                    ->orWhere('status', '!=', 'scheduled')
+                    ->orWhereNotNull('odds_updated_at')
+                    ->orWhereNotNull('home_score')
+                    ->orWhereNotNull('away_score');
+            })
             ->orderBy('match_date');
 
         if ($request->filled('status')) {
