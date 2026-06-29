@@ -69,7 +69,7 @@ export default function HomePage() {
   const [showFireworks, setShowFireworks] = useState(true);
   const [selectedDate, setSelectedDate] = useState<string>(TODAY_KEY);
   const [syncing, setSyncing] = useState(false);
-  const dateTabsRef = useRef<HTMLDivElement>(null);
+
 
   const loadMatches = useCallback(async () => {
     setLoading(true);
@@ -152,6 +152,8 @@ export default function HomePage() {
   // All available date keys sorted
   const byDate = useMemo(() => groupByDate(matches), [matches]);
   const allDateKeys = useMemo(() => Array.from(byDate.keys()).sort(), [byDate]);
+  const nearbyDateKeys = useMemo(() => allDateKeys.filter((k) => NEARBY_KEYS.has(k)), [allDateKeys]);
+  const otherDateKeys = useMemo(() => allDateKeys.filter((k) => !NEARBY_KEYS.has(k)), [allDateKeys]);
 
   // If selected date has no matches, pick nearest available
   const effectiveDate = useMemo(() => {
@@ -162,6 +164,24 @@ export default function HomePage() {
   const displayedMatches = useMemo(() => byDate.get(effectiveDate) ?? [], [byDate, effectiveDate]);
   const liveCount = displayedMatches.filter((m) => m.status === 'live').length;
   const myPredicted = matches.filter((m) => m.user_prediction).length;
+
+  const otherScrollRef = useRef<HTMLDivElement>(null);
+  const currentIndex = allDateKeys.indexOf(effectiveDate);
+
+  const goPrevDate = () => {
+    if (currentIndex > 0) setSelectedDate(allDateKeys[currentIndex - 1]);
+  };
+
+  const goNextDate = () => {
+    if (currentIndex < allDateKeys.length - 1) setSelectedDate(allDateKeys[currentIndex + 1]);
+  };
+
+  // Auto-scroll active "other" date tab into view
+  useEffect(() => {
+    if (loading || !otherScrollRef.current) return;
+    const activeBtn = otherScrollRef.current.querySelector<HTMLElement>('[data-active="true"]');
+    activeBtn?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }, [loading, effectiveDate]);
 
   const selectDate = (key: string) => {
     setSelectedDate(key);
@@ -236,36 +256,83 @@ export default function HomePage() {
 
         {/* ── Date tab bar ── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-3 mb-4">
-          <div ref={dateTabsRef} className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {loading
-              ? [0,1,2].map((i) => (
-                  <div key={i} className="flex-shrink-0 w-16 h-12 rounded-xl bg-gray-100 animate-pulse" />
-                ))
-              : allDateKeys.map((key) => {
-                  const { line1, line2, special } = dateTabLabel(key);
-                  const active = effectiveDate === key;
-                  const hasLive = byDate.get(key)?.some((m) => m.status === 'live');
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => selectDate(key)}
-                      className={`flex-shrink-0 flex flex-col items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold transition-all min-w-[72px] relative ${
-                        active
-                          ? special === 'today'
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-gray-800 text-white shadow-md'
-                          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                      }`}
-                    >
-                      {hasLive && (
-                        <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
-                      )}
-                      <span className="font-bold">{line1}</span>
-                      <span className={`mt-0.5 ${active ? 'opacity-80' : 'text-gray-400'}`}>{line2}</span>
-                    </button>
-                  );
-                })
-            }
+          <div className="flex gap-2 items-stretch min-h-[52px]">
+
+            {/* Fixed: Hôm qua / Hôm nay / Ngày mai */}
+            <div className="flex gap-2 flex-shrink-0">
+              {loading
+                ? [0,1,2].map((i) => (
+                    <div key={i} className="w-[72px] h-[52px] rounded-xl bg-gray-100 animate-pulse" />
+                  ))
+                : nearbyDateKeys.map((key) => {
+                    const { line1, line2, special } = dateTabLabel(key);
+                    const active = effectiveDate === key;
+                    const hasLive = byDate.get(key)?.some((m) => m.status === 'live');
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => selectDate(key)}
+                        className={`flex flex-col items-center justify-center px-4 py-2 rounded-xl text-xs font-semibold transition-all min-w-[72px] relative ${
+                          active
+                            ? special === 'today'
+                              ? 'bg-blue-600 text-white shadow-md'
+                              : 'bg-gray-800 text-white shadow-md'
+                            : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {hasLive && <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />}
+                        <span className="font-bold">{line1}</span>
+                        <span className={`mt-0.5 ${active ? 'opacity-80' : 'text-gray-400'}`}>{line2}</span>
+                      </button>
+                    );
+                  })
+              }
+            </div>
+
+            {/* Divider */}
+            {!loading && otherDateKeys.length > 0 && (
+              <div className="w-px bg-gray-200 flex-shrink-0 self-stretch" />
+            )}
+
+            {/* Prev/Next + danh sách ngày khác */}
+            {!loading && otherDateKeys.length > 0 && (
+              <div className="flex items-center gap-1 min-w-0 flex-1">
+                <button
+                  onClick={goPrevDate}
+                  disabled={currentIndex <= 0}
+                  className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-gray-50 text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-all font-bold text-base"
+                >‹</button>
+
+                <div ref={otherScrollRef} className="flex gap-1.5 overflow-x-auto scrollbar-hide flex-1 px-0.5">
+                  {otherDateKeys.map((key) => {
+                    const { line1, line2 } = dateTabLabel(key);
+                    const active = effectiveDate === key;
+                    const hasLive = byDate.get(key)?.some((m) => m.status === 'live');
+                    return (
+                      <button
+                        key={key}
+                        data-active={active}
+                        onClick={() => selectDate(key)}
+                        className={`flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 rounded-xl text-xs font-semibold transition-all min-w-[60px] relative ${
+                          active ? 'bg-gray-800 text-white shadow-md' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'
+                        }`}
+                      >
+                        {hasLive && <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />}
+                        <span className="font-bold capitalize">{line1}</span>
+                        <span className={`mt-0.5 ${active ? 'opacity-80' : 'text-gray-400'}`}>{line2}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={goNextDate}
+                  disabled={currentIndex >= allDateKeys.length - 1}
+                  className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-gray-50 text-gray-500 hover:bg-gray-100 disabled:opacity-30 transition-all font-bold text-base"
+                >›</button>
+              </div>
+            )}
+
           </div>
         </div>
 
