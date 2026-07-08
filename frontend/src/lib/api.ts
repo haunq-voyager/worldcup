@@ -29,6 +29,7 @@ api.interceptors.request.use((config) => {
 export const authApi = {
   googleLogin: (credential: string) =>
     api.post<AuthResponse>('/auth/google', { credential }).then((r) => r.data),
+  devLogin: () => api.post<AuthResponse>('/auth/dev-login').then((r) => r.data),
   logout: () => api.post('/logout').then((r) => r.data),
   me: () => api.get('/me').then((r) => r.data),
   updateProfile: (name: string) => api.patch<User>('/me', { name }).then((r) => r.data),
@@ -78,8 +79,8 @@ export const specialPredictionsApi = {
   save: (type: string, value: string) =>
     api.post<SpecialPrediction>('/special-predictions', { type, value }).then((r) => r.data),
   delete: (id: number) => api.delete(`/special-predictions/${id}`),
-  settle: (type: string, correct_value: string) =>
-    api.post('/special-predictions/settle', { type, correct_value }).then((r) => r.data),
+  settle: (type: string, winner_ids: number[]) =>
+    api.post('/special-predictions/settle', { type, winner_ids }).then((r) => r.data),
 };
 
 export const leaderboardApi = {

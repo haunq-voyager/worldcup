@@ -13,6 +13,9 @@ use Illuminate\Support\Facades\Route;
 Route::post('/auth/google', [AuthController::class, 'googleLogin'])
     ->middleware('throttle:10,1')
     ->name('auth.google');
+Route::post('/auth/dev-login', [AuthController::class, 'devLogin'])
+    ->middleware('throttle:20,1')
+    ->name('auth.dev-login');
 
 Route::get('/teams',       [TeamController::class, 'index']);
 Route::get('/teams/{team}', [TeamController::class, 'show']);

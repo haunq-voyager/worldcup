@@ -5,6 +5,10 @@ import { authApi } from '@/lib/api';
 import type { User } from '@/types';
 
 const USER_UPDATED_EVENT = 'auth:user-updated';
+const isLocalDevAuth = () =>
+  process.env.NODE_ENV === 'development' &&
+  typeof window !== 'undefined' &&
+  ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
 function notifyUserUpdated(user: User | null) {
   window.dispatchEvent(new CustomEvent<User | null>(USER_UPDATED_EVENT, { detail: user }));
@@ -17,6 +21,20 @@ export function useAuth() {
   const loadUser = useCallback(async () => {
     const token = localStorage.getItem('auth_token');
     if (!token) {
+      if (isLocalDevAuth()) {
+        try {
+          const data = await authApi.devLogin();
+          localStorage.setItem('auth_token', data.token);
+          setUser(data.user);
+          notifyUserUpdated(data.user);
+        } catch {
+          localStorage.removeItem('auth_token');
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
       setLoading(false);
       return;
     }

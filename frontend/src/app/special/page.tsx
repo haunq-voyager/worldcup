@@ -1,27 +1,25 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { specialPredictionsApi, teamsApi } from '@/lib/api';
-import type { SpecialPrediction, Team } from '@/types';
-import Image from 'next/image';
 import clsx from 'clsx';
+import { specialPredictionsApi, teamsApi } from '@/lib/api';
+import { useAuth } from '@/hooks/useAuth';
+import type { SpecialPrediction, Team } from '@/types';
 
 const STAKE = 50;
+const SETTLE_AVAILABLE_DATE = '2026-07-20';
 
 const TYPE_CONFIG = {
   champion: {
-    label: 'Đội vô địch',
+    label: 'Doi vo dich',
     icon: '🏆',
-    desc: 'Đội nào sẽ vô địch FIFA World Cup 2026?',
-    inputType: 'team' as const,
+    desc: 'Binh chon da dung. Ket qua chi duoc cap nhat sau tran cuoi cung.',
   },
   best_player: {
-    label: 'Cầu thủ xuất sắc',
+    label: 'Cau thu xuat sac',
     icon: '⭐',
-    desc: 'Ai sẽ đoạt danh hiệu Quả bóng vàng (Golden Ball)?',
-    inputType: 'text' as const,
+    desc: 'Binh chon da dung. Admin tick nhung nguoi du doan dung de tinh diem.',
   },
 };
 
@@ -34,19 +32,9 @@ export default function SpecialPage() {
   const [allPreds, setAllPreds] = useState<SpecialPrediction[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loadingData, setLoadingData] = useState(true);
-
-  // Per-tab form state
-  const [championValue, setChampionValue] = useState('');
-  const [bestPlayerValue, setBestPlayerValue] = useState('');
-  const [editingChampion, setEditingChampion] = useState(false);
-  const [editingBestPlayer, setEditingBestPlayer] = useState(false);
-
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState('');
-
-  // Admin settle
-  const [settleValue, setSettleValue] = useState('');
+  const [selectedWinnerIds, setSelectedWinnerIds] = useState<number[]>([]);
   const [settling, setSettling] = useState(false);
+  const [toast, setToast] = useState('');
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/auth/login');
@@ -63,79 +51,61 @@ export default function SpecialPage() {
       specialPredictionsApi.mine(),
       specialPredictionsApi.all(tab),
       teamsApi.list(),
-    ]).then(([mine, all, tms]) => {
+    ]).then(([mine, all, teamList]) => {
       setMyPreds(mine);
       setAllPreds(all);
-      setTeams(tms);
-      const champ = mine.find((p) => p.type === 'champion');
-      const best  = mine.find((p) => p.type === 'best_player');
-      if (champ) setChampionValue(champ.value);
-      if (best)  setBestPlayerValue(best.value);
+      setTeams(teamList);
     }).finally(() => setLoadingData(false));
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (user) loadAllPreds();
+    setSelectedWinnerIds([]);
   }, [tab, loadAllPreds, user]);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
+  const showToast = (message: string) => {
+    setToast(message);
     setTimeout(() => setToast(''), 3000);
   };
 
-  const myPred = myPreds.find((p) => p.type === tab);
-  const editing = tab === 'champion' ? editingChampion : editingBestPlayer;
-  const setEditing = tab === 'champion' ? setEditingChampion : setEditingBestPlayer;
-  const currentValue = tab === 'champion' ? championValue : bestPlayerValue;
-  const setCurrentValue = tab === 'champion' ? setChampionValue : setBestPlayerValue;
+  const teamName = (code: string) => teams.find((team) => team.country_code === code)?.name ?? code;
+  const teamFlag = (code: string) => teams.find((team) => team.country_code === code)?.flag_url ?? null;
+  const displayValue = (prediction: SpecialPrediction) =>
+    prediction.type === 'champion' ? teamName(prediction.value) : prediction.value;
 
-  const handleSubmit = async () => {
-    const val = currentValue.trim();
-    if (!val) return;
-    setSaving(true);
-    try {
-      const saved = await specialPredictionsApi.save(tab, val);
-      setMyPreds((prev) => [...prev.filter((p) => p.type !== tab), saved]);
-      setEditing(false);
-      loadAllPreds();
-      showToast('Đã lưu dự đoán!');
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: { message?: string } } };
-      showToast(err?.response?.data?.message ?? 'Lỗi khi lưu dự đoán.');
-    } finally {
-      setSaving(false);
-    }
-  };
+  const myPred = myPreds.find((prediction) => prediction.type === tab);
+  const cfg = TYPE_CONFIG[tab];
+  const canSettle = new Date() >= new Date(`${SETTLE_AVAILABLE_DATE}T00:00:00`);
+  const unsettledPreds = allPreds.filter((prediction) => prediction.is_correct === null);
 
-  const handleCancel = async (pred: SpecialPrediction) => {
-    try {
-      await specialPredictionsApi.delete(pred.id);
-      setMyPreds((prev) => prev.filter((p) => p.id !== pred.id));
-      if (tab === 'champion') setChampionValue('');
-      else setBestPlayerValue('');
-      loadAllPreds();
-      showToast('Đã hủy dự đoán.');
-    } catch {
-      showToast('Không thể hủy dự đoán.');
-    }
+  const toggleWinner = (predictionId: number) => {
+    setSelectedWinnerIds((prev) =>
+      prev.includes(predictionId)
+        ? prev.filter((id) => id !== predictionId)
+        : [...prev, predictionId]
+    );
   };
 
   const handleSettle = async () => {
-    const val = settleValue.trim();
-    if (!val) return;
+    const confirmed = window.confirm(
+      `Xac nhan tinh diem ${cfg.label} voi ${selectedWinnerIds.length} nguoi du doan dung?`
+    );
+    if (!confirmed) return;
+
     setSettling(true);
     try {
-      await specialPredictionsApi.settle(tab, val);
+      await specialPredictionsApi.settle(tab, selectedWinnerIds);
       const [mine, all] = await Promise.all([
         specialPredictionsApi.mine(),
         specialPredictionsApi.all(tab),
       ]);
       setMyPreds(mine);
       setAllPreds(all);
-      setSettleValue('');
-      showToast('Đã tính điểm dự đoán đặc biệt!');
-    } catch {
-      showToast('Lỗi khi tính điểm.');
+      setSelectedWinnerIds([]);
+      showToast('Da tinh diem du doan dac biet.');
+    } catch (error: unknown) {
+      const apiError = error as { response?: { data?: { message?: string } } };
+      showToast(apiError?.response?.data?.message ?? 'Loi khi tinh diem.');
     } finally {
       setSettling(false);
     }
@@ -143,236 +113,159 @@ export default function SpecialPage() {
 
   if (authLoading || !user) return null;
 
-  const cfg = TYPE_CONFIG[tab];
-
-  const teamName = (code: string) => teams.find((t) => t.country_code === code)?.name ?? code;
-  const teamFlag = (code: string) => teams.find((t) => t.country_code === code)?.flag_url ?? null;
-
-  const displayValue = (p: SpecialPrediction) =>
-    p.type === 'champion' ? teamName(p.value) : p.value;
-
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold text-gray-900 mb-1">Dự đoán đặc biệt</h1>
-      <p className="text-gray-500 mb-6">
-        Đặt cược <span className="font-bold text-blue-600">{STAKE} vcoins</span> mỗi lần ·
-        Ai đúng chia pool của người sai · Không ai đúng thì không trừ
+    <div className="mx-auto max-w-2xl px-4 py-8">
+      <h1 className="mb-1 text-3xl font-bold text-gray-900">Du doan dac biet</h1>
+      <p className="mb-6 text-gray-500">
+        Binh chon doi vo dich va cau thu xuat sac da dung. Moi phieu cuoc {STAKE} vcoins.
       </p>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
-        {(['champion', 'best_player'] as const).map((t) => (
+      <div className="mb-6 flex gap-2 border-b border-gray-200">
+        {(['champion', 'best_player'] as const).map((type) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
+            key={type}
+            onClick={() => setTab(type)}
             className={clsx(
-              'pb-2 px-4 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5',
-              tab === t
+              'flex items-center gap-1.5 border-b-2 px-4 pb-2 text-sm font-medium transition-colors',
+              tab === type
                 ? 'border-blue-600 text-blue-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
             )}
           >
-            {TYPE_CONFIG[t].icon} {TYPE_CONFIG[t].label}
+            {TYPE_CONFIG[type].icon} {TYPE_CONFIG[type].label}
           </button>
         ))}
       </div>
 
-      {/* My prediction card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
-        <h2 className="text-sm font-bold text-gray-700 mb-0.5">{cfg.icon} {cfg.label}</h2>
-        <p className="text-xs text-gray-400 mb-4">{cfg.desc}</p>
+      <div className="mb-5 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <h2 className="mb-0.5 text-sm font-bold text-gray-700">
+          {cfg.icon} {cfg.label}
+        </h2>
+        <p className="mb-4 text-xs text-gray-400">{cfg.desc}</p>
 
-        {myPred && !editing ? (
-          /* Show existing prediction */
-          <div className="space-y-3">
-            <div className={clsx(
-              'flex items-center gap-3 p-3 rounded-xl border',
+        {myPred ? (
+          <div
+            className={clsx(
+              'flex items-center gap-3 rounded-xl border p-3',
               myPred.is_correct === true
-                ? 'bg-green-50 border-green-200'
+                ? 'border-green-200 bg-green-50'
                 : myPred.is_correct === false
-                ? 'bg-red-50 border-red-200'
-                : 'bg-blue-50 border-blue-200'
-            )}>
-              {myPred.type === 'champion' && teamFlag(myPred.value) && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={teamFlag(myPred.value)!}
-                  alt={teamName(myPred.value)}
-                  width={40} height={30}
-                  className="rounded object-cover flex-shrink-0"
-                />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-800 truncate">{displayValue(myPred)}</p>
-                <p className="text-xs text-gray-400">Dự đoán của bạn · {STAKE} vcoins</p>
-              </div>
-              {myPred.is_correct === true && (
-                <span className="text-green-700 font-black text-sm flex-shrink-0">
-                  +{myPred.points_earned} vcoins
-                </span>
-              )}
-              {myPred.is_correct === false && myPred.points_earned < 0 && (
-                <span className="text-red-600 font-black text-sm flex-shrink-0">
-                  {myPred.points_earned} vcoins
-                </span>
-              )}
-              {myPred.is_correct === null && (
-                <span className="text-blue-500 text-xs font-semibold flex-shrink-0">Chờ kết quả</span>
-              )}
+                ? 'border-red-200 bg-red-50'
+                : 'border-blue-200 bg-blue-50'
+            )}
+          >
+            {myPred.type === 'champion' && teamFlag(myPred.value) && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={teamFlag(myPred.value)!}
+                alt={teamName(myPred.value)}
+                width={40}
+                height={30}
+                className="flex-shrink-0 rounded object-cover"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-bold text-gray-800">{displayValue(myPred)}</p>
+              <p className="text-xs text-gray-400">Phieu cua ban da khoa</p>
             </div>
-
+            {myPred.is_correct === true && (
+              <span className="flex-shrink-0 text-sm font-black text-green-700">
+                +{myPred.points_earned} vcoins
+              </span>
+            )}
+            {myPred.is_correct === false && myPred.points_earned < 0 && (
+              <span className="flex-shrink-0 text-sm font-black text-red-600">
+                {myPred.points_earned} vcoins
+              </span>
+            )}
             {myPred.is_correct === null && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setEditing(true)}
-                  className="flex-1 py-1.5 border border-gray-200 rounded-xl text-xs font-semibold text-gray-600 hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all"
-                >
-                  Thay đổi dự đoán
-                </button>
-                <button
-                  onClick={() => handleCancel(myPred)}
-                  className="flex-1 py-1.5 border border-red-200 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-50 hover:text-red-600 transition-all"
-                >
-                  Hủy dự đoán
-                </button>
-              </div>
+              <span className="flex-shrink-0 text-xs font-semibold text-blue-500">Cho ket qua</span>
             )}
           </div>
         ) : (
-          /* Input form */
-          <div className="space-y-3">
-            {cfg.inputType === 'team' ? (
-              loadingData ? (
-                <div className="h-11 bg-gray-100 rounded-xl animate-pulse" />
-              ) : (
-                <select
-                  value={championValue}
-                  onChange={(e) => setChampionValue(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-                >
-                  <option value="">-- Chọn đội vô địch --</option>
-                  {teams.map((t) => (
-                    <option key={t.country_code} value={t.country_code}>
-                      {t.name}
-                    </option>
-                  ))}
-                </select>
-              )
-            ) : (
-              <input
-                type="text"
-                value={bestPlayerValue}
-                onChange={(e) => setBestPlayerValue(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-                placeholder="Nhập tên cầu thủ..."
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50"
-              />
-            )}
-
-            <div className="flex gap-2">
-              <button
-                onClick={handleSubmit}
-                disabled={saving || !currentValue.trim()}
-                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 text-white text-sm font-bold shadow-md transition-all"
-              >
-                {saving ? '⏳ Đang lưu...' : `🎯 Cược ${STAKE} vcoins`}
-              </button>
-              {myPred && (
-                <button
-                  onClick={() => { setEditing(false); setCurrentValue(myPred.value); }}
-                  className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-500 hover:bg-gray-50 transition-all"
-                >
-                  Hủy sửa
-                </button>
-              )}
-            </div>
+          <div className="rounded-xl bg-gray-50 px-3 py-3 text-sm font-semibold text-gray-500">
+            Ban chua co phieu cho hang muc nay. Binh chon da dung.
           </div>
         )}
       </div>
 
-      {/* Admin settle */}
       {user.is_admin && (
-        <div className="bg-orange-50 rounded-2xl border border-orange-100 p-4 mb-5">
-          <h3 className="text-xs font-bold text-orange-600 mb-3">
-            ⚙️ Admin · Tính điểm {cfg.label}
+        <div className="mb-5 rounded-2xl border border-orange-100 bg-orange-50 p-4">
+          <h3 className="mb-2 text-xs font-bold text-orange-600">
+            Admin · Tinh diem {cfg.label}
           </h3>
-          <div className="flex gap-2">
-            {cfg.inputType === 'team' ? (
-              <select
-                value={settleValue}
-                onChange={(e) => setSettleValue(e.target.value)}
-                className="flex-1 border border-orange-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
-              >
-                <option value="">-- Chọn đội vô địch đúng --</option>
-                {teams.map((t) => (
-                  <option key={t.country_code} value={t.country_code}>{t.name}</option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                value={settleValue}
-                onChange={(e) => setSettleValue(e.target.value)}
-                placeholder="Tên cầu thủ chính xác..."
-                className="flex-1 border border-orange-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
-              />
-            )}
-            <button
-              onClick={handleSettle}
-              disabled={settling || !settleValue.trim()}
-              className="px-4 py-2 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-colors"
-            >
-              {settling ? '...' : 'Tính điểm'}
-            </button>
-          </div>
+          <p className="mb-3 text-xs font-semibold text-orange-700">
+            Tick nhung nguoi du doan dung trong danh sach ben duoi. Chi cap nhat duoc tu ngay 20/07/2026.
+          </p>
+          <button
+            onClick={handleSettle}
+            disabled={settling || !canSettle || unsettledPreds.length === 0}
+            className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
+          >
+            {settling ? 'Dang tinh...' : `Xac nhan ${selectedWinnerIds.length} nguoi dung`}
+          </button>
         </div>
       )}
 
-      {/* All predictions */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <h2 className="text-sm font-bold text-gray-700 mb-3">
-          {cfg.icon} Dự đoán của mọi người
-          <span className="ml-2 text-xs font-normal text-gray-400">{allPreds.length} người đã tham gia</span>
+      <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <h2 className="mb-3 text-sm font-bold text-gray-700">
+          {cfg.icon} Du doan cua moi nguoi
+          <span className="ml-2 text-xs font-normal text-gray-400">{allPreds.length} nguoi da tham gia</span>
         </h2>
 
         {loadingData ? (
           <div className="space-y-2">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="h-10 animate-pulse rounded-lg bg-gray-100" />
             ))}
           </div>
         ) : allPreds.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-6">Chưa có dự đoán nào.</p>
+          <p className="py-6 text-center text-sm text-gray-400">Chua co du doan nao.</p>
         ) : (
           <div className="space-y-1.5">
-            {allPreds.map((p) => {
-              const flag = p.type === 'champion' ? teamFlag(p.value) : null;
-              const isMe = p.user_id === user.id;
+            {allPreds.map((prediction) => {
+              const flag = prediction.type === 'champion' ? teamFlag(prediction.value) : null;
+              const isMe = prediction.user_id === user.id;
+              const canSelectWinner = Boolean(user.is_admin && prediction.is_correct === null && canSettle);
+
               return (
                 <div
-                  key={p.id}
+                  key={prediction.id}
                   className={clsx(
-                    'flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm',
-                    isMe ? 'bg-blue-50 border border-blue-100' :
-                    p.is_correct === true ? 'bg-green-50' :
-                    p.is_correct === false ? 'bg-red-50/60' : 'bg-gray-50'
+                    'flex items-center gap-2.5 rounded-xl px-3 py-2 text-sm',
+                    isMe
+                      ? 'border border-blue-100 bg-blue-50'
+                      : prediction.is_correct === true
+                      ? 'bg-green-50'
+                      : prediction.is_correct === false
+                      ? 'bg-red-50/60'
+                      : 'bg-gray-50'
                   )}
                 >
+                  {user.is_admin && prediction.is_correct === null && (
+                    <input
+                      type="checkbox"
+                      checked={selectedWinnerIds.includes(prediction.id)}
+                      onChange={() => toggleWinner(prediction.id)}
+                      disabled={!canSelectWinner}
+                      className="h-4 w-4 flex-shrink-0 rounded border-gray-300 text-orange-500 focus:ring-orange-400"
+                    />
+                  )}
                   {flag && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={flag} alt="" width={28} height={20} className="rounded object-cover flex-shrink-0" />
+                    <img src={flag} alt="" width={28} height={20} className="flex-shrink-0 rounded object-cover" />
                   )}
-                  <span className="font-semibold text-gray-700 flex-1 truncate">
-                    {displayValue(p)}
+                  <span className="flex-1 truncate font-semibold text-gray-700">
+                    {displayValue(prediction)}
                   </span>
-                  <span className={clsx('text-xs flex-shrink-0', isMe ? 'text-blue-600 font-bold' : 'text-gray-400')}>
-                    {p.user?.name ?? '?'}{isMe ? ' (bạn)' : ''}
+                  <span className={clsx('flex-shrink-0 text-xs', isMe ? 'font-bold text-blue-600' : 'text-gray-400')}>
+                    {prediction.user?.name ?? '?'}{isMe ? ' (ban)' : ''}
                   </span>
-                  {p.is_correct === true && (
-                    <span className="text-green-600 text-xs font-black flex-shrink-0">+{p.points_earned}</span>
+                  {prediction.is_correct === true && (
+                    <span className="flex-shrink-0 text-xs font-black text-green-600">+{prediction.points_earned}</span>
                   )}
-                  {p.is_correct === false && p.points_earned < 0 && (
-                    <span className="text-red-500 text-xs font-black flex-shrink-0">{p.points_earned}</span>
+                  {prediction.is_correct === false && prediction.points_earned < 0 && (
+                    <span className="flex-shrink-0 text-xs font-black text-red-500">{prediction.points_earned}</span>
                   )}
                 </div>
               );
@@ -382,7 +275,7 @@ export default function SpecialPage() {
       </div>
 
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-xl text-sm z-[60] animate-slide-up">
+        <div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-full bg-gray-900 px-6 py-3 text-sm text-white shadow-xl animate-slide-up">
           {toast}
         </div>
       )}

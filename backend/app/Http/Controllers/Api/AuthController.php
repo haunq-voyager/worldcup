@@ -8,8 +8,10 @@ use App\Exceptions\InvalidGoogleCredentialException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\GoogleLoginRequest;
 use App\Http\Requests\UpdateAvatarRequest;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
@@ -26,6 +28,25 @@ class AuthController extends Controller
         }
 
         return response()->json($auth, Response::HTTP_OK);
+    }
+
+    public function devLogin(): JsonResponse
+    {
+        abort_unless(app()->environment('local'), Response::HTTP_NOT_FOUND);
+
+        $user = User::query()->updateOrCreate(
+            ['email' => 'local-tester@example.test'],
+            [
+                'name' => 'Local Tester',
+                'password' => Str::password(32),
+                'is_admin' => true,
+            ],
+        );
+
+        return response()->json([
+            'user' => $user->fresh(),
+            'token' => $user->createToken('local-dev')->plainTextToken,
+        ], Response::HTTP_OK);
     }
 
     public function logout(Request $request): JsonResponse
