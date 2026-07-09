@@ -59,12 +59,24 @@ function groupByRound(matches: WorldCupMatch[]): Array<{ round: string; matches:
   return orderedRounds.map((round) => ({ round, matches: grouped.get(round) ?? [] }));
 }
 
+function getDefaultRoundFilter(matches: WorldCupMatch[]): string {
+  const roundsWithMatches = new Set(matches.map((match) => match.round));
+  const activeRound = ROUND_ORDER.find((round) =>
+    matches.some((match) => match.round === round && match.status !== 'finished')
+  );
+
+  if (activeRound) return activeRound;
+
+  return [...ROUND_ORDER].reverse().find((round) => roundsWithMatches.has(round)) ?? '';
+}
+
 export default function HomePage() {
   const { user, loading: authLoading, refresh: refreshUser } = useAuth();
-  const [matches, setMatches] = useState<WorldCupMatch[]>([]);
+  const [allMatches, setAllMatches] = useState<WorldCupMatch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [roundFilter, setRoundFilter] = useState('');
+  const [roundFilterTouched, setRoundFilterTouched] = useState(false);
   const [statusFilter, setStatusFilter] = useState('');
   const [groupFilter, setGroupFilter] = useState('');
   const [predicting, setPredicting] = useState<number | null>(null);
@@ -75,23 +87,24 @@ export default function HomePage() {
   const loadMatches = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await matchesApi.list({
-        round: roundFilter || undefined,
-        status: statusFilter || undefined,
-        group: groupFilter || undefined,
-      });
-      setMatches(sortMatchesByTime(data));
+      const data = await matchesApi.list();
+      setAllMatches(sortMatchesByTime(data));
       setError('');
     } catch {
       setError('Không thể tải danh sách trận đấu.');
     } finally {
       setLoading(false);
     }
-  }, [roundFilter, statusFilter, groupFilter]);
+  }, []);
 
   useEffect(() => {
     if (!authLoading) loadMatches();
   }, [loadMatches, authLoading]);
+
+  useEffect(() => {
+    if (roundFilterTouched || allMatches.length === 0) return;
+    setRoundFilter(getDefaultRoundFilter(allMatches));
+  }, [allMatches, roundFilterTouched]);
 
   useEffect(() => {
     const timeout = setTimeout(() => setShowFireworks(false), 15000);
@@ -109,7 +122,7 @@ export default function HomePage() {
     setPredicting(matchId);
     try {
       const saved: Prediction = await predictionsApi.create(matchId, homeScore, awayScore, trashTalk.trim() || null);
-      setMatches((prev) =>
+      setAllMatches((prev) =>
         prev.map((match) => match.id === matchId ? { ...match, user_prediction: saved } : match)
       );
       refreshUser();
@@ -125,7 +138,7 @@ export default function HomePage() {
   const handleCancelPredict = async (predictionId: number, matchId: number) => {
     try {
       await predictionsApi.delete(predictionId);
-      setMatches((prev) =>
+      setAllMatches((prev) =>
         prev.map((match) => match.id === matchId ? { ...match, user_prediction: null } : match)
       );
       refreshUser();
@@ -151,6 +164,15 @@ export default function HomePage() {
       setSyncing(false);
     }
   };
+
+  const matches = useMemo(() => {
+    return allMatches.filter((match) => {
+      if (roundFilter && match.round !== roundFilter) return false;
+      if (statusFilter && match.status !== statusFilter) return false;
+      if (groupFilter && match.group_name !== groupFilter.toUpperCase()) return false;
+      return true;
+    });
+  }, [allMatches, roundFilter, statusFilter, groupFilter]);
 
   const matchSections = useMemo(() => groupByRound(matches), [matches]);
   const liveCount = matches.filter((match) => match.status === 'live').length;
@@ -227,7 +249,10 @@ export default function HomePage() {
               <label className="mb-1 block text-xs font-medium text-gray-400">Vòng đấu</label>
               <select
                 value={roundFilter}
-                onChange={(event) => setRoundFilter(event.target.value)}
+                onChange={(event) => {
+                  setRoundFilterTouched(true);
+                  setRoundFilter(event.target.value);
+                }}
                 className="rounded-xl border border-gray-200 bg-gray-50 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {ROUND_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
@@ -257,7 +282,12 @@ export default function HomePage() {
             </div>
             {hasFilters && (
               <button
-                onClick={() => { setRoundFilter(''); setStatusFilter(''); setGroupFilter(''); }}
+                onClick={() => {
+                  setRoundFilterTouched(true);
+                  setRoundFilter('');
+                  setStatusFilter('');
+                  setGroupFilter('');
+                }}
                 className="pb-0.5 text-xs text-gray-400 underline hover:text-gray-600"
               >
                 Xóa bộ lọc
