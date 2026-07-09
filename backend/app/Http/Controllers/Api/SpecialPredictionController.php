@@ -25,7 +25,7 @@ class SpecialPredictionController extends Controller
     {
         $type = $request->query('type', 'champion');
         if (!in_array($type, self::TYPES, true)) {
-            return response()->json(['message' => 'Loai du doan khong hop le.'], 422);
+            return response()->json(['message' => 'Loại dự đoán không hợp lệ.'], 422);
         }
 
         return SpecialPrediction::where('type', $type)
@@ -37,20 +37,20 @@ class SpecialPredictionController extends Controller
     /** POST /special-predictions  (auth) - stopped */
     public function store(Request $request)
     {
-        return response()->json(['message' => 'Binh chon dac biet da dung.'], 422);
+        return response()->json(['message' => 'Bình chọn đặc biệt đã dừng.'], 422);
     }
 
     /** DELETE /special-predictions/{id}  (auth) - stopped */
     public function destroy(Request $request, SpecialPrediction $specialPrediction)
     {
-        return response()->json(['message' => 'Binh chon dac biet da dung, khong the huy.'], 422);
+        return response()->json(['message' => 'Bình chọn đặc biệt đã dừng, không thể hủy.'], 422);
     }
 
     /** POST /special-predictions/settle  (admin) - pool-settle a type */
     public function settle(Request $request)
     {
         if (!$request->user()->is_admin) {
-            return response()->json(['message' => 'Khong co quyen.'], 403);
+            return response()->json(['message' => 'Không có quyền.'], 403);
         }
 
         $request->validate([
@@ -61,7 +61,7 @@ class SpecialPredictionController extends Controller
 
         if (CarbonImmutable::today()->lt(CarbonImmutable::parse(self::SETTLE_AVAILABLE_DATE))) {
             return response()->json([
-                'message' => 'Chi duoc cap nhat ket qua binh chon dac biet tu ngay 20/07/2026 sau tran cuoi cung.',
+                'message' => 'Chỉ được cập nhật kết quả bình chọn đặc biệt từ ngày 20/07/2026 sau trận cuối cùng.',
             ], 422);
         }
 
@@ -83,7 +83,7 @@ class SpecialPredictionController extends Controller
 
             $invalidWinnerIds = $winnerIds->diff($predictions->pluck('id'));
             if ($invalidWinnerIds->isNotEmpty()) {
-                abort(response()->json(['message' => 'Danh sach nguoi binh chon dung khong hop le.'], 422));
+                abort(response()->json(['message' => 'Danh sách người bình chọn đúng không hợp lệ.'], 422));
             }
 
             $winners = $predictions->filter(fn ($prediction) => $winnerIds->contains($prediction->id))->values();
@@ -129,6 +129,6 @@ class SpecialPredictionController extends Controller
             }
         });
 
-        return response()->json(['message' => 'Da tinh diem du doan dac biet.']);
+        return response()->json(['message' => 'Đã tính điểm dự đoán đặc biệt.']);
     }
 }

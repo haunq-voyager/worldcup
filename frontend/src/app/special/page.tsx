@@ -12,14 +12,14 @@ const SETTLE_AVAILABLE_DATE = '2026-07-20';
 
 const TYPE_CONFIG = {
   champion: {
-    label: 'Doi vo dich',
+    label: 'Đội vô địch',
     icon: '🏆',
-    desc: 'Binh chon da dung. Ket qua chi duoc cap nhat sau tran cuoi cung.',
+    desc: 'Bình chọn đã dừng. Kết quả chỉ được cập nhật sau trận cuối cùng.',
   },
   best_player: {
-    label: 'Cau thu xuat sac',
+    label: 'Cầu thủ xuất sắc',
     icon: '⭐',
-    desc: 'Binh chon da dung. Admin tick nhung nguoi du doan dung de tinh diem.',
+    desc: 'Bình chọn đã dừng. Admin tick những người dự đoán đúng để tính điểm.',
   },
 };
 
@@ -88,7 +88,7 @@ export default function SpecialPage() {
 
   const handleSettle = async () => {
     const confirmed = window.confirm(
-      `Xac nhan tinh diem ${cfg.label} voi ${selectedWinnerIds.length} nguoi du doan dung?`
+      `Xác nhận tính điểm ${cfg.label} với ${selectedWinnerIds.length} người dự đoán đúng?`
     );
     if (!confirmed) return;
 
@@ -102,10 +102,10 @@ export default function SpecialPage() {
       setMyPreds(mine);
       setAllPreds(all);
       setSelectedWinnerIds([]);
-      showToast('Da tinh diem du doan dac biet.');
+      showToast('Đã tính điểm dự đoán đặc biệt.');
     } catch (error: unknown) {
       const apiError = error as { response?: { data?: { message?: string } } };
-      showToast(apiError?.response?.data?.message ?? 'Loi khi tinh diem.');
+      showToast(apiError?.response?.data?.message ?? 'Lỗi khi tính điểm.');
     } finally {
       setSettling(false);
     }
@@ -115,9 +115,9 @@ export default function SpecialPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <h1 className="mb-1 text-3xl font-bold text-gray-900">Du doan dac biet</h1>
+      <h1 className="mb-1 text-3xl font-bold text-gray-900">Dự đoán đặc biệt</h1>
       <p className="mb-6 text-gray-500">
-        Binh chon doi vo dich va cau thu xuat sac da dung. Moi phieu cuoc {STAKE} vcoins.
+        Bình chọn đội vô địch và cầu thủ xuất sắc đã dừng. Mỗi phiếu cược {STAKE} vcoins.
       </p>
 
       <div className="mb-6 flex gap-2 border-b border-gray-200">
@@ -166,7 +166,7 @@ export default function SpecialPage() {
             )}
             <div className="min-w-0 flex-1">
               <p className="truncate font-bold text-gray-800">{displayValue(myPred)}</p>
-              <p className="text-xs text-gray-400">Phieu cua ban da khoa</p>
+              <p className="text-xs text-gray-400">Phiếu của bạn đã khóa</p>
             </div>
             {myPred.is_correct === true && (
               <span className="flex-shrink-0 text-sm font-black text-green-700">
@@ -179,12 +179,12 @@ export default function SpecialPage() {
               </span>
             )}
             {myPred.is_correct === null && (
-              <span className="flex-shrink-0 text-xs font-semibold text-blue-500">Cho ket qua</span>
+              <span className="flex-shrink-0 text-xs font-semibold text-blue-500">Chờ kết quả</span>
             )}
           </div>
         ) : (
           <div className="rounded-xl bg-gray-50 px-3 py-3 text-sm font-semibold text-gray-500">
-            Ban chua co phieu cho hang muc nay. Binh chon da dung.
+            Bạn chưa có phiếu cho hạng mục này. Bình chọn đã dừng.
           </div>
         )}
       </div>
@@ -192,25 +192,25 @@ export default function SpecialPage() {
       {user.is_admin && (
         <div className="mb-5 rounded-2xl border border-orange-100 bg-orange-50 p-4">
           <h3 className="mb-2 text-xs font-bold text-orange-600">
-            Admin · Tinh diem {cfg.label}
+            Admin · Tính điểm {cfg.label}
           </h3>
           <p className="mb-3 text-xs font-semibold text-orange-700">
-            Tick nhung nguoi du doan dung trong danh sach ben duoi. Chi cap nhat duoc tu ngay 20/07/2026.
+            Tick những người dự đoán đúng trong danh sách bên dưới. Chỉ cập nhật được từ ngày 20/07/2026.
           </p>
           <button
             onClick={handleSettle}
             disabled={settling || !canSettle || unsettledPreds.length === 0}
             className="rounded-xl bg-orange-500 px-4 py-2 text-sm font-bold text-white transition-colors hover:bg-orange-600 disabled:opacity-50"
           >
-            {settling ? 'Dang tinh...' : `Xac nhan ${selectedWinnerIds.length} nguoi dung`}
+            {settling ? 'Đang tính...' : `Xác nhận ${selectedWinnerIds.length} người đúng`}
           </button>
         </div>
       )}
 
       <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-bold text-gray-700">
-          {cfg.icon} Du doan cua moi nguoi
-          <span className="ml-2 text-xs font-normal text-gray-400">{allPreds.length} nguoi da tham gia</span>
+          {cfg.icon} Dự đoán của mọi người
+          <span className="ml-2 text-xs font-normal text-gray-400">{allPreds.length} người đã tham gia</span>
         </h2>
 
         {loadingData ? (
@@ -220,7 +220,7 @@ export default function SpecialPage() {
             ))}
           </div>
         ) : allPreds.length === 0 ? (
-          <p className="py-6 text-center text-sm text-gray-400">Chua co du doan nao.</p>
+          <p className="py-6 text-center text-sm text-gray-400">Chưa có dự đoán nào.</p>
         ) : (
           <div className="space-y-1.5">
             {allPreds.map((prediction) => {
@@ -259,7 +259,7 @@ export default function SpecialPage() {
                     {displayValue(prediction)}
                   </span>
                   <span className={clsx('flex-shrink-0 text-xs', isMe ? 'font-bold text-blue-600' : 'text-gray-400')}>
-                    {prediction.user?.name ?? '?'}{isMe ? ' (ban)' : ''}
+                    {prediction.user?.name ?? '?'}{isMe ? ' (bạn)' : ''}
                   </span>
                   {prediction.is_correct === true && (
                     <span className="flex-shrink-0 text-xs font-black text-green-600">+{prediction.points_earned}</span>
