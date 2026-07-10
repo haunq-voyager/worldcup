@@ -1,6 +1,7 @@
 import axios from 'axios';
 import type {
   AuthResponse,
+  CorrectPredictionsTodayResponse,
   DataSyncResponse,
   LeaderboardEntry,
   MatchPredictionsResponse,
@@ -63,6 +64,8 @@ export const predictionsApi = {
       .post<Prediction>('/predictions', { match_id, predicted_home_score, predicted_away_score, trash_talk })
       .then((r) => r.data),
   myPredictions: () => api.get<Prediction[]>('/predictions/my').then((r) => r.data),
+  correctToday: () =>
+    api.get<CorrectPredictionsTodayResponse>('/predictions/correct-today').then((r) => r.data),
   forMatch: (matchId: number, page = 1, perPage = 50) =>
     api
       .get<MatchPredictionsResponse>(`/matches/${matchId}/predictions`, {

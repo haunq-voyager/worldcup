@@ -7,6 +7,7 @@ use App\Http\Requests\StorePredictionRequest;
 use App\Models\Prediction;
 use App\Models\WorldCupMatch;
 use App\Services\MatchSettlementService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -72,6 +73,58 @@ class PredictionController extends Controller
                 'wrong'   => (int) $summary->wrong,
                 'pending' => (int) $summary->pending,
             ],
+        ]);
+    }
+
+    public function correctToday(): JsonResponse
+    {
+        $today = CarbonImmutable::now('Asia/Ho_Chi_Minh');
+        $start = $today->startOfDay();
+        $end = $today->endOfDay();
+
+        $predictions = Prediction::query()
+            ->select([
+                'id',
+                'user_id',
+                'match_id',
+                'predicted_home_score',
+                'predicted_away_score',
+                'points_earned',
+                'created_at',
+            ])
+            ->with([
+                'user:id,name,avatar_path,google_avatar_url',
+                'match.homeTeam:id,name,flag_url,country_code',
+                'match.awayTeam:id,name,flag_url,country_code',
+            ])
+            ->where('is_correct', true)
+            ->whereHas('match', function ($query) use ($start, $end) {
+                $query->whereBetween('match_date', [$start, $end]);
+            })
+            ->latest('created_at')
+            ->get();
+
+        return response()->json([
+            'date' => $today->toDateString(),
+            'total' => $predictions->count(),
+            'data' => $predictions->map(fn (Prediction $prediction) => [
+                'id' => $prediction->id,
+                'user' => [
+                    'id' => $prediction->user->id,
+                    'name' => $prediction->user->name,
+                    'avatar_url' => $prediction->user->avatar_url,
+                ],
+                'match' => [
+                    'id' => $prediction->match->id,
+                    'home_team' => $prediction->match->homeTeam->name,
+                    'away_team' => $prediction->match->awayTeam->name,
+                    'home_score' => $prediction->match->home_score,
+                    'away_score' => $prediction->match->away_score,
+                ],
+                'predicted_home_score' => $prediction->predicted_home_score,
+                'predicted_away_score' => $prediction->predicted_away_score,
+                'points_earned' => $prediction->points_earned,
+            ])->values(),
         ]);
     }
 

@@ -33,6 +33,7 @@ class MatchController extends Controller
         }
 
         $matches = $query->get();
+        $this->attachTrashTalks($matches);
 
         // Optionally attach user's prediction (works even on public routes)
         $user = auth()->guard('sanctum')->user();
@@ -54,6 +55,7 @@ class MatchController extends Controller
     public function show(Request $request, WorldCupMatch $match): JsonResponse
     {
         $match->load(['homeTeam', 'awayTeam']);
+        $this->attachTrashTalks(collect([$match]));
 
         $user = auth()->guard('sanctum')->user();
         if ($user) {
@@ -65,4 +67,47 @@ class MatchController extends Controller
         return response()->json($match);
     }
 
+    private function attachTrashTalks($matches): void
+    {
+        $activeMatches = $matches->filter(fn (WorldCupMatch $match) =>
+            $match->status === 'live' || ($match->status === 'scheduled' && $match->match_date->isFuture())
+        );
+        $matchIds = $activeMatches->pluck('id');
+
+        if ($matches->isEmpty()) {
+            return;
+        }
+
+        $trashTalks = $matchIds->isEmpty()
+            ? collect()
+            : Prediction::query()
+                ->select(['id', 'user_id', 'match_id', 'trash_talk', 'created_at'])
+                ->with('user:id,name,avatar_path,google_avatar_url')
+                ->whereIn('match_id', $matchIds)
+                ->whereNotNull('trash_talk')
+                ->where('trash_talk', '!=', '')
+                ->orderBy('created_at')
+                ->get()
+                ->groupBy('match_id');
+
+        $matches->each(function (WorldCupMatch $match) use ($trashTalks) {
+            $match->setAttribute('trash_talks', ($trashTalks->get($match->id) ?? collect())
+                ->map(fn (Prediction $prediction) => [
+                    'id' => $prediction->id,
+                    'message' => $prediction->trash_talk,
+                    'created_at' => $prediction->created_at,
+                    'match' => [
+                        'id' => $match->id,
+                        'home_team' => $match->homeTeam->name,
+                        'away_team' => $match->awayTeam->name,
+                    ],
+                    'user' => [
+                        'id' => $prediction->user->id,
+                        'name' => $prediction->user->name,
+                        'avatar_url' => $prediction->user->avatar_url,
+                    ],
+                ])
+                ->values());
+        });
+    }
 }

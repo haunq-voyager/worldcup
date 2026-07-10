@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { vnTime, vnDateShort } from '@/lib/datetime';
 import type { WorldCupMatch } from '@/types';
 import MatchPredictionsModal from '@/components/MatchPredictionsModal';
+import TrashTalkTicker from '@/components/TrashTalkTicker';
 import clsx from 'clsx';
 
 interface MatchCardProps {
@@ -225,6 +226,8 @@ export default function MatchCard({ match, onPredict, onCancelPredict, isAuthent
           </div>
         </div>
       )}
+
+      <TrashTalkTicker items={match.trash_talks} />
 
       {/* Prediction section */}
       <div className="border-t border-gray-100 px-3 py-3 mt-auto">

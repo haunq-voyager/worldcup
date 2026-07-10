@@ -221,6 +221,13 @@
   animation-play-state: paused;
 }
 
+.trash-talk-track {
+  animation: marquee 22s linear infinite;
+}
+.trash-talk-track:hover {
+  animation-play-state: paused;
+}
+
 .animate-slide-up       { animation: slideUp 0.5s ease-out forwards; }
 .animate-slide-in-left  { animation: slideInLeft 0.4s ease-out forwards; }
 .animate-fade-in        { animation: fadeIn 0.3s ease-out forwards; }
@@ -259,4 +266,11 @@
   background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trash-talk-track,
+  .marquee-track {
+    animation: none;
+  }
 }

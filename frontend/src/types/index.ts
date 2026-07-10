@@ -53,6 +53,19 @@ export interface WorldCupMatch {
   odds?: MatchOdds | null;
   odds_updated_at?: string | null;
   user_prediction?: Prediction | null;
+  trash_talks?: MatchTrashTalk[];
+}
+
+export interface MatchTrashTalk {
+  id: number;
+  message: string;
+  created_at: string;
+  match: {
+    id: number;
+    home_team: string;
+    away_team: string;
+  };
+  user: Pick<User, 'id' | 'name' | 'avatar_url'>;
 }
 
 export interface Prediction {
@@ -78,6 +91,27 @@ export interface MatchPredictionViewer {
   is_correct: boolean | null;
   points_earned: number;
   created_at: string;
+}
+
+export interface CorrectPredictionToday {
+  id: number;
+  user: Pick<User, 'id' | 'name' | 'avatar_url'>;
+  match: {
+    id: number;
+    home_team: string;
+    away_team: string;
+    home_score: number | null;
+    away_score: number | null;
+  };
+  predicted_home_score: number;
+  predicted_away_score: number;
+  points_earned: number;
+}
+
+export interface CorrectPredictionsTodayResponse {
+  date: string;
+  total: number;
+  data: CorrectPredictionToday[];
 }
 
 export interface MatchPredictionsResponse {

@@ -1,15 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import dynamic from 'next/dynamic';
 import { matchesApi, predictionsApi } from '@/lib/api';
-import type { Prediction, WorldCupMatch } from '@/types';
+import type { CorrectPredictionToday, Prediction, WorldCupMatch } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 import MatchCard from '@/components/MatchCard';
 import HeroBanner from '@/components/HeroBanner';
 import UserAvatar from '@/components/UserAvatar';
-
-const Fireworks = dynamic(() => import('@/components/Fireworks'), { ssr: false });
+import CorrectPredictionsPopup from '@/components/CorrectPredictionsPopup';
 
 const ROUND_OPTIONS = [
   { value: '', label: 'Tất cả' },
@@ -81,8 +79,12 @@ export default function HomePage() {
   const [groupFilter, setGroupFilter] = useState('');
   const [predicting, setPredicting] = useState<number | null>(null);
   const [toast, setToast] = useState('');
-  const [showFireworks, setShowFireworks] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [correctToday, setCorrectToday] = useState<{ date: string; data: CorrectPredictionToday[] }>({
+    date: '',
+    data: [],
+  });
+  const [correctPopupOpen, setCorrectPopupOpen] = useState(false);
 
   const loadMatches = useCallback(async () => {
     setLoading(true);
@@ -102,14 +104,21 @@ export default function HomePage() {
   }, [loadMatches, authLoading]);
 
   useEffect(() => {
+    predictionsApi.correctToday()
+      .then((response) => {
+        setCorrectToday({ date: response.date, data: response.data });
+        setCorrectPopupOpen(response.data.length > 0);
+      })
+      .catch(() => {
+        setCorrectToday({ date: '', data: [] });
+        setCorrectPopupOpen(false);
+      });
+  }, []);
+
+  useEffect(() => {
     if (roundFilterTouched || allMatches.length === 0) return;
     setRoundFilter(getDefaultRoundFilter(allMatches));
   }, [allMatches, roundFilterTouched]);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => setShowFireworks(false), 15000);
-    return () => clearTimeout(timeout);
-  }, []);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -181,7 +190,6 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {showFireworks && <Fireworks />}
       <HeroBanner />
 
       <div className="mx-auto max-w-7xl px-4 py-6">
@@ -356,6 +364,13 @@ export default function HomePage() {
           <span>✓</span> {toast}
         </div>
       )}
+
+      <CorrectPredictionsPopup
+        open={correctPopupOpen}
+        predictions={correctToday.data}
+        date={correctToday.date}
+        onClose={() => setCorrectPopupOpen(false)}
+      />
     </div>
   );
 }
