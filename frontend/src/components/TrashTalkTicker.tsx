@@ -29,10 +29,6 @@ export default function TrashTalkTicker({ items = [] }: TrashTalkTickerProps) {
                   className="flex h-8 max-w-[340px] items-center gap-1.5 rounded-full border border-amber-200 bg-white px-3 text-xs shadow-sm"
                 >
                   <span className="font-black text-amber-700 truncate">{item.user.name}</span>
-                  <span className="text-amber-300">@</span>
-                  <span className="max-w-[120px] truncate font-semibold text-gray-500">
-                    {item.match.home_team} - {item.match.away_team}
-                  </span>
                   <span className="text-amber-300">:</span>
                   <span className="truncate italic text-amber-800">"{item.message}"</span>
                 </div>
